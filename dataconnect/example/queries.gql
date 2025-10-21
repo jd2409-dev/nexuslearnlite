@@ -1,0 +1,25 @@
+mutation CreateNewUser($email: String!, $username: String!, $passwordHash: String!) @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public") {
+  user_insert(data: {email: $email, username: $username, passwordHash: $passwordHash, createdAt_expr: "request.time", id_expr: "uuidV4()"})
+}
+
+query GetCourses @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public") {
+  courses {
+    id
+    title
+    description
+    imageUrl
+  }
+}
+
+query GetLessonsForModule($moduleId: UUID!) @auth(level: USER, insecureReason: "This operation is safe to expose to all logged in users.") {
+  lessons(where: {moduleId: {eq: $moduleId}}) {
+    id
+    title
+    content
+    orderIndex
+  }
+}
+
+mutation UpdateProgress($lessonId: UUID!, $isCompleted: Boolean!, $score: Int, $timeSpent: Int) @auth(level: USER) {
+  progress_upsert(data: {lessonId: $lessonId, userId_expr: "auth.uid", isCompleted: $isCompleted, score: $score, timeSpent: $timeSpent, completedAt_expr: "request.time"})
+}

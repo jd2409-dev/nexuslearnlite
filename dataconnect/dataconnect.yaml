@@ -1,6 +1,6 @@
 specVersion: "v1"
 serviceId: "studio"
-location: "me-west1"
+location: "europe-central2"
 schema:
   source: "./schema"
   datasource:
@@ -10,4 +10,4 @@ schema:
         instanceId: "studio-fdc"
         # schemaValidation: "STRICT"     # STRICT mode makes Postgres schema match Data Connect exactly.
         # schemaValidation: "COMPATIBLE" # COMPATIBLE mode makes Postgres schema compatible with Data Connect.
-connectorDirs: []
+connectorDirs: ["./example"]

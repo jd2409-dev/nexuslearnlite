@@ -1,0 +1,106 @@
+mutation CreateSeedData @transaction @auth(level: USER, insecureReason: "This operation is safe to expose to all logged in users.") {
+  user_insertMany(data: [
+    {
+      id: "550e8400-e29b-41d4-a716-446655440000",
+      username: "demouser1",
+      email: "demouser1@example.com",
+      createdAt: "2024-04-26T12:00:00Z",
+      passwordHash: "somehash1"
+    },
+    {
+      id: "550e8400-e29b-41d4-a716-446655440001",
+      username: "demouser2",
+      email: "demouser2@example.com",
+      createdAt: "2024-04-26T12:00:00Z",
+      passwordHash: "somehash2"
+    }
+  ])
+  course_insertMany(data: [
+    {
+      id: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+      category: "Programming",
+      createdAt: "2024-04-26T12:00:00Z",
+      description: "Introductory programming course",
+      difficulty: "Beginner",
+      title: "Introduction to Programming"
+    },
+    {
+      id: "b2c3d4e5-f6a7-8901-2345-67890abcdef0",
+      category: "Design",
+      createdAt: "2024-04-26T12:00:00Z",
+      description: "Learn the basics of graphic design",
+      difficulty: "Beginner",
+      title: "Graphic Design Fundamentals"
+    }
+  ])
+  module_insertMany(data: [
+    {
+      id: "c3d4e5f6-a7b8-9012-3456-7890abcdef01",
+      courseId: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+      createdAt: "2024-04-26T12:00:00Z",
+      description: "First module for programming intro",
+      orderIndex: 1,
+      title: "Setting up your environment"
+    },
+    {
+      id: "d4e5f6a7-b8c9-0123-4567-890abcdef012",
+      courseId: "b2c3d4e5-f6a7-8901-2345-67890abcdef0",
+      createdAt: "2024-04-26T12:00:00Z",
+      description: "First module for design basics",
+      orderIndex: 1,
+      title: "Introduction to Design Principles"
+    }
+  ])
+  lesson_insertMany(data: [
+    {
+      id: "e5f6a7b8-c9d0-1234-5678-90abcdef0123",
+      moduleId: "c3d4e5f6-a7b8-9012-3456-7890abcdef01",
+      content: "Learn how to install necessary tools",
+      createdAt: "2024-04-26T12:00:00Z",
+      orderIndex: 1,
+      title: "Installing VS Code"
+    },
+    {
+      id: "f6a7b8c9-d0e1-2345-6789-0abcdef01234",
+      moduleId: "d4e5f6a7-b8c9-0123-4567-890abcdef012",
+      content: "Learn about color theory",
+      createdAt: "2024-04-26T12:00:00Z",
+      orderIndex: 1,
+      title: "Color Theory Basics"
+    }
+  ])
+    quiz_insertMany(data: [
+    {
+      id: "5d945b63-4a61-4d41-9c7e-1b1d7f1b5d2a",
+      lessonId: "e5f6a7b8-c9d0-1234-5678-90abcdef0123",
+      description: "Test your VS Code knowledge",
+      passingScore: 70,
+      title: "VS Code Basics Quiz"
+    },
+    {
+      id: "6e834c72-5b72-4e52-8d8f-2c2e8a2c6e3b",
+      lessonId: "f6a7b8c9-d0e1-2345-6789-0abcdef01234",
+      description: "Test your color theory knowledge",
+      passingScore: 75,
+      title: "Color Theory Basics Quiz"
+    }
+  ])
+  progress_insertMany(data: [
+    {
+      userId: "550e8400-e29b-41d4-a716-446655440000",
+      lessonId: "e5f6a7b8-c9d0-1234-5678-90abcdef0123",
+      completedAt: "2024-04-27T10:00:00Z",
+      isCompleted: true,
+      score: 80,
+      timeSpent: 30
+    },
+    {
+      userId: "550e8400-e29b-41d4-a716-446655440001",
+      lessonId: "f6a7b8c9-d0e1-2345-6789-0abcdef01234",
+      completedAt: "2024-04-27T11:00:00Z",
+      isCompleted: true,
+      score: 90,
+      timeSpent: 40
+    }
+  ])
+}

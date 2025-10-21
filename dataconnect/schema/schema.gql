@@ -1,58 +1,57 @@
 type User @table {
-  displayName: String!
+  username: String!
   email: String!
+  passwordHash: String!
   createdAt: Timestamp!
+  displayName: String
   photoUrl: String
-  learningStyle: String
-  lastLogin: Timestamp
+  bio: String
+  learningGoals: String
 }
 
 type Course @table {
   title: String!
   description: String!
-  instructor: User!
+  category: String!
   difficulty: String!
   createdAt: Timestamp!
   imageUrl: String
-  duration: Int
-  prerequisites: [String]
+  estimatedDuration: String
+  prerequisites: String
 }
 
 type Module @table {
-  course: Course!
+  course: Course
   title: String!
+  description: String!
   orderIndex: Int!
   createdAt: Timestamp!
-  description: String
+  moduleType: String
 }
 
 type Lesson @table {
-  module: Module!
+  module: Module
   title: String!
-  contentType: String!
   content: String!
   orderIndex: Int!
   createdAt: Timestamp!
-  estimatedDuration: Int
+  lessonType: String
+  estimatedCompletionTime: Int
 }
 
-type Enrollment @table(key: ["user", "course"]) {
-  user: User!
-  course: Course!
-  enrollmentDate: Timestamp!
-  status: String!
-  createdAt: Timestamp!
-  completionDate: Timestamp
-  progressPercentage: Float
-}
-
-type Progress @table(key: ["user", "lesson", "module", "enrollment"]) {
+type Progress @table(key: ["user", "lesson"]) {
   user: User!
   lesson: Lesson!
-  module: Module!
-  enrollment: Enrollment!
-  completionStatus: String!
-  lastAccessedAt: Timestamp!
-  score: Float
+  completedAt: Timestamp!
+  isCompleted: Boolean!
+  score: Int
   timeSpent: Int
+}
+
+type Quiz @table {
+  lesson: Lesson
+  title: String!
+  description: String!
+  passingScore: Int!
+  type: String
 }
