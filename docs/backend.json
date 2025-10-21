@@ -6,10 +6,6 @@
       "type": "object",
       "description": "Represents a user's profile and associated information.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the user profile."
-        },
         "fullName": {
           "type": "string",
           "description": "The user's full name."
@@ -34,21 +30,9 @@
         "coins": {
           "type": "number",
           "description": "The number of coins the user has earned."
-        },
-        "studyPlanId": {
-          "type": "string",
-          "description": "Reference to StudyPlan. (Relationship: UserProfile 1:1 StudyPlan)"
-        },
-        "achievementIds": {
-          "type": "array",
-          "description": "References to Achievements. (Relationship: UserProfile 1:N Achievement)",
-          "items": {
-            "type": "string"
-          }
         }
       },
       "required": [
-        "id",
         "fullName",
         "email",
         "board",
@@ -219,145 +203,17 @@
   },
   "auth": {
     "providers": [
-      "password",
-      "anonymous"
+      "password"
     ]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}/profile",
-        "definition": {
-          "entityName": "UserProfile",
-          "schema": {
-            "$ref": "#/backend/entities/UserProfile"
-          },
-          "description": "Stores user profile data. Path-based ownership ensures only the user can access their own profile. Includes user's full name and email.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/studyPlans/{studyPlanId}",
-        "definition": {
-          "entityName": "StudyPlan",
-          "schema": {
-            "$ref": "#/backend/entities/StudyPlan"
-          },
-          "description": "Stores user's study plans. Path-based ownership ensures only the user can access their own study plans.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "studyPlanId",
-              "description": "The unique identifier for the study plan."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/studyPlans/{studyPlanId}/subjectModules/{subjectModuleId}",
-        "definition": {
-          "entityName": "SubjectModule",
-          "schema": {
-            "$ref": "#/backend/entities/SubjectModule"
-          },
-          "description": "Stores subject modules within a study plan. Path-based ownership ensures only the user can access their own subject modules.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "studyPlanId",
-              "description": "The unique identifier for the study plan."
-            },
-            {
-              "name": "subjectModuleId",
-              "description": "The unique identifier for the subject module."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/textbooks/{textbookId}",
-        "definition": {
-          "entityName": "Textbook",
-          "schema": {
-            "$ref": "#/backend/entities/Textbook"
-          },
-          "description": "Stores textbooks uploaded by users. Includes denormalized 'userId' for authorization independence.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "textbookId",
-              "description": "The unique identifier for the textbook."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/quizzes/{quizId}",
-        "definition": {
-          "entityName": "Quiz",
-          "schema": {
-            "$ref": "#/backend/entities/Quiz"
-          },
-          "description": "Stores quizzes available in the system.",
-          "params": [
-            {
-              "name": "quizId",
-              "description": "The unique identifier for the quiz."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/quizzes/{quizId}/questions/{questionId}",
-        "definition": {
-          "entityName": "Question",
-          "schema": {
-            "$ref": "#/backend/entities/Question"
-          },
-          "description": "Stores questions associated with a quiz.",
-          "params": [
-            {
-              "name": "quizId",
-              "description": "The unique identifier for the quiz."
-            },
-            {
-              "name": "questionId",
-              "description": "The unique identifier for the question."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/achievements/{achievementId}",
-        "definition": {
-          "entityName": "Achievement",
-          "schema": {
-            "$ref": "#/backend/entities/Achievement"
-          },
-          "description": "Stores achievement definitions.",
-          "params": [
-            {
-              "name": "achievementId",
-              "description": "The unique identifier for the achievement."
-            }
-          ]
-        }
+    "collections": {
+      "/users/{userId}": {
+        "schema": {
+          "$ref": "#/entities/UserProfile"
+        },
+        "description": "Stores public user profile data."
       }
-    ],
-    "reasoning": "The Firestore structure is designed to ensure Authorization Independence, support QAPs, and maintain data clarity. User data is stored under `/users/{userId}` for private data access. Denormalization is applied to the `/users/{userId}/textbooks` collection, where the `userId` is included in each textbook document. This eliminates the need for `get()` calls in security rules to verify ownership. Study plans and subject modules are structured under the user to maintain a clear hierarchy and ownership. This design allows for secure and scalable data management within the NexusLearn AI application."
+    }
   }
 }

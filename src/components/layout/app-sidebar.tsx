@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Sidebar,
   SidebarHeader,
@@ -20,6 +20,8 @@ import {
   GraduationCap,
   LogOut,
 } from "lucide-react";
+import { useAuth } from "@/firebase";
+import { signOut } from "firebase/auth";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -31,6 +33,14 @@ const navItems = [
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const auth = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push('/login');
+  };
+
 
   return (
     <Sidebar collapsible="icon" className="border-r">
@@ -61,11 +71,9 @@ export function AppSidebar() {
       <SidebarFooter className="p-2">
         <SidebarMenu>
            <SidebarMenuItem>
-             <SidebarMenuButton asChild tooltip={{ children: "Logout" }}>
-                <Link href="/login">
-                  <LogOut />
-                  <span>Logout</span>
-                </Link>
+             <SidebarMenuButton onClick={handleLogout} tooltip={{ children: "Logout" }}>
+                <LogOut />
+                <span>Logout</span>
               </SidebarMenuButton>
            </SidebarMenuItem>
         </SidebarMenu>

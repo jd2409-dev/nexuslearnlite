@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Bot, FileQuestion, GraduationCap, ArrowRight, Zap, Coins, PlusCircle, BookOpen } from "lucide-react";
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { useUser } from "@/firebase";
 
 const quickAccessItems = [
   { href: "/ai-tutor", label: "AI Tutor", icon: Bot, description: "Get instant homework help." },
@@ -14,6 +15,7 @@ const quickAccessItems = [
 ];
 
 export default function DashboardPage() {
+  const { user } = useUser();
   const [xp, setXp] = useState(1250);
   const [studyGoals, setStudyGoals] = useState([]);
 
@@ -28,7 +30,7 @@ export default function DashboardPage() {
   return (
     <div className="container mx-auto space-y-8">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight font-headline">Welcome back, Student!</h1>
+        <h1 className="text-3xl font-bold tracking-tight font-headline">Welcome back, {user?.displayName || 'Student'}!</h1>
         <p className="text-muted-foreground">Here's your personalized study hub. Let's make today productive.</p>
       </div>
 
