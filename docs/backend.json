@@ -1,0 +1,363 @@
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user's profile and associated information.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user profile."
+        },
+        "fullName": {
+          "type": "string",
+          "description": "The user's full name."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "board": {
+          "type": "string",
+          "description": "The user's selected education board (e.g., CBSE, ICSE)."
+        },
+        "gradeLevel": {
+          "type": "string",
+          "description": "The user's grade level."
+        },
+        "xp": {
+          "type": "number",
+          "description": "The user's experience points."
+        },
+        "coins": {
+          "type": "number",
+          "description": "The number of coins the user has earned."
+        },
+        "studyPlanId": {
+          "type": "string",
+          "description": "Reference to StudyPlan. (Relationship: UserProfile 1:1 StudyPlan)"
+        },
+        "achievementIds": {
+          "type": "array",
+          "description": "References to Achievements. (Relationship: UserProfile 1:N Achievement)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "fullName",
+        "email",
+        "board",
+        "gradeLevel"
+      ]
+    },
+    "StudyPlan": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "StudyPlan",
+      "type": "object",
+      "description": "Represents a user's personalized study plan.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the study plan."
+        },
+        "subjectModules": {
+          "type": "array",
+          "description": "References to SubjectModule. (Relationship: StudyPlan 1:N SubjectModule)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "SubjectModule": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SubjectModule",
+      "type": "object",
+      "description": "Represents a specific subject module within a study plan.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the subject module."
+        },
+        "subjectName": {
+          "type": "string",
+          "description": "The name of the subject (e.g., Math, Science)."
+        },
+        "completionRate": {
+          "type": "number",
+          "description": "The completion rate of the module (0-100)."
+        }
+      },
+      "required": [
+        "id",
+        "subjectName"
+      ]
+    },
+    "Textbook": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Textbook",
+      "type": "object",
+      "description": "Represents a textbook uploaded by a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the textbook."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the textbook."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to UserProfile. (Relationship: UserProfile 1:N Textbook)"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "userId"
+      ]
+    },
+    "Quiz": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Quiz",
+      "type": "object",
+      "description": "Represents a quiz or exam.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the quiz."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the quiz."
+        },
+        "questions": {
+          "type": "array",
+          "description": "References to Questions. (Relationship: Quiz 1:N Question)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "Question": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Question",
+      "type": "object",
+      "description": "Represents a question in a quiz.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the question."
+        },
+        "text": {
+          "type": "string",
+          "description": "The text of the question."
+        },
+        "correctAnswer": {
+          "type": "string",
+          "description": "The correct answer to the question."
+        },
+        "options": {
+          "type": "array",
+          "description": "A list of possible answers to the question.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "correctAnswer",
+        "options"
+      ]
+    },
+    "Achievement": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Achievement",
+      "type": "object",
+      "description": "Represents an achievement a user can earn.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the achievement."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the achievement."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of how to earn the achievement."
+        },
+        "xpReward": {
+          "type": "number",
+          "description": "The XP reward for earning the achievement."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "xpReward"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}/profile",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores user profile data. Path-based ownership ensures only the user can access their own profile. Includes user's full name and email.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/studyPlans/{studyPlanId}",
+        "definition": {
+          "entityName": "StudyPlan",
+          "schema": {
+            "$ref": "#/backend/entities/StudyPlan"
+          },
+          "description": "Stores user's study plans. Path-based ownership ensures only the user can access their own study plans.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "studyPlanId",
+              "description": "The unique identifier for the study plan."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/studyPlans/{studyPlanId}/subjectModules/{subjectModuleId}",
+        "definition": {
+          "entityName": "SubjectModule",
+          "schema": {
+            "$ref": "#/backend/entities/SubjectModule"
+          },
+          "description": "Stores subject modules within a study plan. Path-based ownership ensures only the user can access their own subject modules.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "studyPlanId",
+              "description": "The unique identifier for the study plan."
+            },
+            {
+              "name": "subjectModuleId",
+              "description": "The unique identifier for the subject module."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/textbooks/{textbookId}",
+        "definition": {
+          "entityName": "Textbook",
+          "schema": {
+            "$ref": "#/backend/entities/Textbook"
+          },
+          "description": "Stores textbooks uploaded by users. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "textbookId",
+              "description": "The unique identifier for the textbook."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/quizzes/{quizId}",
+        "definition": {
+          "entityName": "Quiz",
+          "schema": {
+            "$ref": "#/backend/entities/Quiz"
+          },
+          "description": "Stores quizzes available in the system.",
+          "params": [
+            {
+              "name": "quizId",
+              "description": "The unique identifier for the quiz."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/quizzes/{quizId}/questions/{questionId}",
+        "definition": {
+          "entityName": "Question",
+          "schema": {
+            "$ref": "#/backend/entities/Question"
+          },
+          "description": "Stores questions associated with a quiz.",
+          "params": [
+            {
+              "name": "quizId",
+              "description": "The unique identifier for the quiz."
+            },
+            {
+              "name": "questionId",
+              "description": "The unique identifier for the question."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/achievements/{achievementId}",
+        "definition": {
+          "entityName": "Achievement",
+          "schema": {
+            "$ref": "#/backend/entities/Achievement"
+          },
+          "description": "Stores achievement definitions.",
+          "params": [
+            {
+              "name": "achievementId",
+              "description": "The unique identifier for the achievement."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to ensure Authorization Independence, support QAPs, and maintain data clarity. User data is stored under `/users/{userId}` for private data access. Denormalization is applied to the `/users/{userId}/textbooks` collection, where the `userId` is included in each textbook document. This eliminates the need for `get()` calls in security rules to verify ownership. Study plans and subject modules are structured under the user to maintain a clear hierarchy and ownership. This design allows for secure and scalable data management within the NexusLearn AI application."
+  }
+}
