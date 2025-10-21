@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -37,6 +38,15 @@ import {
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const formSchema = z.object({
   fullName: z.string({ required_error: "Name is required." }).min(1, { message: "Name is required." }),
@@ -108,77 +118,24 @@ export function SignupForm() {
   }
 
   return (
-    <Card className="w-full max-w-md border-border">
-      <CardHeader>
-        <CardTitle className="font-headline text-2xl">Create an Account</CardTitle>
-        <CardDescription>Start your personalized learning journey today.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="fullName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Full Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="John Doe" {...field} disabled={isLoading} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="you@example.com" {...field} disabled={isLoading} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} disabled={isLoading} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-2 gap-4">
+    <>
+      <Card className="w-full max-w-md border-border">
+        <CardHeader>
+          <CardTitle className="font-headline text-2xl">Create an Account</CardTitle>
+          <CardDescription>Start your personalized learning journey today.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="board"
+                name="fullName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Board</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select board" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="cbse">CBSE</SelectItem>
-                        <SelectItem value="icse">ICSE</SelectItem>
-                        <SelectItem value="gcse">GCSE</SelectItem>
-                        <SelectItem value="ib">IB</SelectItem>
-                        <SelectItem value="state">State Board</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Full Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="John Doe" {...field} disabled={isLoading} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -186,48 +143,103 @@ export function SignupForm() {
 
               <FormField
                 control={form.control}
-                name="gradeLevel"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Grade</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select grade" />
-                        </Trigger>
-                      </FormControl>
-                      <SelectContent>
-                        {[...Array(7)].map((_, i) => (
-                          <SelectItem key={i + 6} value={`${i + 6}`}>
-                            {`Grade ${i + 6}`}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="you@example.com" {...field} disabled={isLoading} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
 
-            <Button
-              type="submit"
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground mt-6"
-              disabled={isLoading}
-            >
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Sign Up & Claim Reward
-            </Button>
-          </form>
-        </Form>
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="••••••••" {...field} disabled={isLoading} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-        <div className="mt-4 text-center text-sm">
-          Already have an account?{" "}
-          <Link href="/login" className="underline text-primary">
-            Log in
-          </Link>
-        </div>
-      </CardContent>
-    </Card>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="board"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Board</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select board" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="cbse">CBSE</SelectItem>
+                          <SelectItem value="icse">ICSE</SelectItem>
+                          <SelectItem value="gcse">GCSE</SelectItem>
+                          <SelectItem value="ib">IB</SelectItem>
+                          <SelectItem value="state">State Board</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="gradeLevel"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Grade</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select grade" />
+                          </Trigger>
+                        </FormControl>
+                        <SelectContent>
+                          {[...Array(7)].map((_, i) => (
+                            <SelectItem key={i + 6} value={`${i + 6}`}>
+                              {`Grade ${i + 6}`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground mt-6"
+                disabled={isLoading}
+              >
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Sign Up & Claim Reward
+              </Button>
+            </form>
+          </Form>
+
+          <div className="mt-4 text-center text-sm">
+            Already have an account?{" "}
+            <Link href="/login" className="underline text-primary">
+              Log in
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    </>
   );
 }
