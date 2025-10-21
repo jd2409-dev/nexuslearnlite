@@ -17,7 +17,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
@@ -51,15 +50,6 @@ export function SignupForm() {
     router.push("/dashboard");
   }
 
-  const handleSocialLogin = (provider: string) => {
-    // In a real app, you'd integrate Firebase social auth.
-    toast({
-        title: "Welcome to NexusLearn AI!",
-        description: `Signed up with ${provider}. You've received 100 XP and 50 coins.`,
-    });
-    router.push("/dashboard");
-  };
-
   return (
     <Card className="w-full max-w-md border-border">
       <CardHeader>
@@ -67,16 +57,6 @@ export function SignupForm() {
         <CardDescription>Start your personalized learning journey today.</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-3 gap-2 mb-6">
-            <Button variant="outline" onClick={() => handleSocialLogin('Google')}>Google</Button>
-            <Button variant="outline" onClick={() => handleSocialLogin('Apple')}>Apple</Button>
-            <Button variant="outline" onClick={() => handleSocialLogin('Microsoft')}>Microsoft</Button>
-        </div>
-        <div className="flex items-center my-4">
-            <Separator className="flex-1" />
-            <span className="mx-4 text-xs text-muted-foreground">OR</span>
-            <Separator className="flex-1" />
-        </div>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -153,7 +133,7 @@ export function SignupForm() {
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select grade" />
-                        </SelectTrigger>
+                        </Trigger>
                       </FormControl>
                       <SelectContent>
                         {[...Array(7)].map((_, i) => (

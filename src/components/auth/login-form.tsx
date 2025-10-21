@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -38,11 +37,6 @@ export function LoginForm() {
     router.push("/dashboard");
   }
 
-  const handleSocialLogin = (provider: string) => {
-    // In a real app, you'd integrate Firebase social auth.
-    router.push("/dashboard");
-  };
-
   return (
     <Card className="w-full max-w-md border-border">
       <CardHeader>
@@ -50,16 +44,6 @@ export function LoginForm() {
         <CardDescription>Welcome back! Please enter your details.</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-3 gap-2 mb-6">
-            <Button variant="outline" onClick={() => handleSocialLogin('Google')}>Google</Button>
-            <Button variant="outline" onClick={() => handleSocialLogin('Apple')}>Apple</Button>
-            <Button variant="outline" onClick={() => handleSocialLogin('Microsoft')}>Microsoft</Button>
-        </div>
-        <div className="flex items-center my-4">
-            <Separator className="flex-1" />
-            <span className="mx-4 text-xs text-muted-foreground">OR</span>
-            <Separator className="flex-1" />
-        </div>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
