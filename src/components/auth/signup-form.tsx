@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -6,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -16,21 +16,38 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
-  name: z.string().min(1, { message: "Name is required." }),
-  email: z.string().email({ message: "Invalid email address." }),
-  password: z.string().min(8, { message: "Password must be at least 8 characters." }),
-  board: z.string().min(1, { message: "Please select your board." }),
-  grade: z.string().min(1, { message: "Please select your grade." }),
+  name: z.string({ required_error: "Name is required." }).min(1, { message: "Name is required." }),
+  email: z
+    .string({ required_error: "Email is required." })
+    .email({ message: "Invalid email address." }),
+  password: z
+    .string({ required_error: "Password is required." })
+    .min(8, { message: "Password must be at least 8 characters." }),
+  board: z.string({ required_error: "Please select your board." }).min(1, { message: "Please select your board." }),
+  grade: z.string({ required_error: "Please select your grade." }).min(1, { message: "Please select your grade." }),
 });
 
 export function SignupForm() {
   const router = useRouter();
   const { toast } = useToast();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -43,10 +60,9 @@ export function SignupForm() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // In a real app, you'd handle registration here.
     toast({
-        title: "Welcome to NexusLearn AI!",
-        description: "You've received a welcome reward of 100 XP and 50 coins.",
+      title: "Welcome to NexusLearn AI!",
+      description: "You've received a welcome reward of 100 XP and 50 coins.",
     });
     router.push("/dashboard");
   }
@@ -60,6 +76,7 @@ export function SignupForm() {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Name Field */}
             <FormField
               control={form.control}
               name="name"
@@ -73,6 +90,8 @@ export function SignupForm() {
                 </FormItem>
               )}
             />
+
+            {/* Email Field */}
             <FormField
               control={form.control}
               name="email"
@@ -86,6 +105,8 @@ export function SignupForm() {
                 </FormItem>
               )}
             />
+
+            {/* Password Field */}
             <FormField
               control={form.control}
               name="password"
@@ -99,6 +120,8 @@ export function SignupForm() {
                 </FormItem>
               )}
             />
+
+            {/* Board and Grade Fields */}
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -106,7 +129,7 @@ export function SignupForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Board</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select board" />
@@ -124,21 +147,24 @@ export function SignupForm() {
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
                 name="grade"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Grade</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select grade" />
-                        </Trigger>
+                        </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {[...Array(7)].map((_, i) => (
-                          <SelectItem key={i+6} value={`${i+6}`}>{`Grade ${i+6}`}</SelectItem>
+                          <SelectItem key={i + 6} value={`${i + 6}`}>
+                            {`Grade ${i + 6}`}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -147,9 +173,16 @@ export function SignupForm() {
                 )}
               />
             </div>
-            <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground !mt-6">Sign Up & Claim Reward</Button>
+
+            <Button
+              type="submit"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground mt-6"
+            >
+              Sign Up & Claim Reward
+            </Button>
           </form>
         </Form>
+
         <div className="mt-4 text-center text-sm">
           Already have an account?{" "}
           <Link href="/login" className="underline text-primary">

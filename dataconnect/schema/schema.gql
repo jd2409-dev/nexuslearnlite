@@ -1,0 +1,58 @@
+type User @table {
+  displayName: String!
+  email: String!
+  createdAt: Timestamp!
+  photoUrl: String
+  learningStyle: String
+  lastLogin: Timestamp
+}
+
+type Course @table {
+  title: String!
+  description: String!
+  instructor: User!
+  difficulty: String!
+  createdAt: Timestamp!
+  imageUrl: String
+  duration: Int
+  prerequisites: [String]
+}
+
+type Module @table {
+  course: Course!
+  title: String!
+  orderIndex: Int!
+  createdAt: Timestamp!
+  description: String
+}
+
+type Lesson @table {
+  module: Module!
+  title: String!
+  contentType: String!
+  content: String!
+  orderIndex: Int!
+  createdAt: Timestamp!
+  estimatedDuration: Int
+}
+
+type Enrollment @table(key: ["user", "course"]) {
+  user: User!
+  course: Course!
+  enrollmentDate: Timestamp!
+  status: String!
+  createdAt: Timestamp!
+  completionDate: Timestamp
+  progressPercentage: Float
+}
+
+type Progress @table(key: ["user", "lesson", "module", "enrollment"]) {
+  user: User!
+  lesson: Lesson!
+  module: Module!
+  enrollment: Enrollment!
+  completionStatus: String!
+  lastAccessedAt: Timestamp!
+  score: Float
+  timeSpent: Int
+}

@@ -13,11 +13,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Award, BarChart, Coins, LogOut, User, Zap } from "lucide-react";
 import Link from 'next/link';
-import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 export function AppHeader() {
   const { isMobile } = useSidebar();
-  const userAvatar = PlaceHolderImages.find(p => p.id === 'user-avatar');
 
   return (
     <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
@@ -37,8 +35,9 @@ export function AppHeader() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
               <Avatar className="h-10 w-10">
-                {userAvatar && <AvatarImage src={userAvatar.imageUrl} alt="User Avatar" data-ai-hint={userAvatar.imageHint} />}
-                <AvatarFallback>U</AvatarFallback>
+                <AvatarFallback>
+                  <User />
+                </AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
