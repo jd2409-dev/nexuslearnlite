@@ -66,6 +66,8 @@ export function SignupForm() {
   const auth = useAuth();
   const firestore = useFirestore();
   const [isLoading, setIsLoading] = React.useState(false);
+  const [errorDialog, setErrorDialog] = React.useState<{ title: string; description: string } | null>(null);
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -107,11 +109,17 @@ export function SignupForm() {
       router.push("/dashboard");
     } catch (error: any) {
       console.error("Signup Error: ", error);
-      toast({
-        variant: "destructive",
-        title: "Uh oh! Something went wrong.",
-        description: error.message || "There was a problem with your request.",
-      });
+      if (error.code === 'auth/email-already-in-use') {
+        setErrorDialog({
+            title: 'Email Already in Use',
+            description: 'This email address is already associated with an account. Please log in or use a different email.',
+        });
+      } else {
+        setErrorDialog({
+            title: 'Uh oh! Something went wrong.',
+            description: error.message || "There was a problem with your request. Please try again.",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -240,6 +248,19 @@ export function SignupForm() {
           </div>
         </CardContent>
       </Card>
+      <AlertDialog open={!!errorDialog} onOpenChange={(open) => !open && setErrorDialog(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{errorDialog?.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {errorDialog?.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setErrorDialog(null)}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
