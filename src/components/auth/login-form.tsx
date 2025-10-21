@@ -35,12 +35,12 @@ export function LoginForm() {
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     // In a real app, you'd handle authentication here.
-    router.push("/");
+    router.push("/dashboard");
   }
 
   const handleSocialLogin = (provider: string) => {
     // In a real app, you'd integrate Firebase social auth.
-    router.push("/");
+    router.push("/dashboard");
   };
 
   return (

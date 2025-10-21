@@ -48,7 +48,7 @@ export function SignupForm() {
         title: "Welcome to NexusLearn AI!",
         description: "You've received a welcome reward of 100 XP and 50 coins.",
     });
-    router.push("/");
+    router.push("/dashboard");
   }
 
   const handleSocialLogin = (provider: string) => {
@@ -57,7 +57,7 @@ export function SignupForm() {
         title: "Welcome to NexusLearn AI!",
         description: `Signed up with ${provider}. You've received 100 XP and 50 coins.`,
     });
-    router.push("/");
+    router.push("/dashboard");
   };
 
   return (
