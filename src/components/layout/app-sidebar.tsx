@@ -14,10 +14,10 @@ import {
 } from "@/components/ui/sidebar";
 import {
   LayoutDashboard,
-  BookCopy,
-  Bot,
-  FileQuestion,
-  GraduationCap,
+  Puzzle,
+  Notebook,
+  Sparkles,
+  CalendarDays,
   LogOut,
 } from "lucide-react";
 import { useAuth } from "@/firebase";
@@ -25,10 +25,10 @@ import { signOut } from "firebase/auth";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/subjects", label: "Subjects", icon: BookCopy },
-  { href: "/ai-tutor", label: "AI Tutor", icon: Bot },
-  { href: "/exam-prep", label: "Exam Prep", icon: FileQuestion },
-  { href: "/textbook-ai", label: "Textbook AI", icon: GraduationCap },
+  { href: "/quiz-generator", label: "Quiz Generator", icon: Puzzle },
+  { href: "/learning-journal", label: "Learning Journal", icon: Notebook },
+  { href: "/reflections", label: "Reflections", icon: Sparkles },
+  { href: "/study-planner", label: "Study Planner", icon: CalendarDays },
 ];
 
 export function AppSidebar() {

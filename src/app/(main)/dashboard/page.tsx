@@ -3,15 +3,16 @@
 
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bot, FileQuestion, GraduationCap, ArrowRight, Zap, Coins, PlusCircle, BookOpen } from "lucide-react";
+import { Puzzle, Notebook, Sparkles, CalendarDays, ArrowRight, Zap, Coins, PlusCircle, BookOpen } from "lucide-react";
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useUser } from "@/firebase";
 
 const quickAccessItems = [
-  { href: "/ai-tutor", label: "AI Tutor", icon: Bot, description: "Get instant homework help." },
-  { href: "/exam-prep", label: "Mock Exams", icon: FileQuestion, description: "Test your knowledge." },
-  { href: "/textbook-ai", label: "Textbook AI", icon: GraduationCap, description: "Upload and ask questions." },
+  { href: "/quiz-generator", label: "Quiz Generator", icon: Puzzle, description: "Create a quiz on any topic." },
+  { href: "/learning-journal", label: "Learning Journal", icon: Notebook, description: "Record your notes." },
+  { href: "/reflections", label: "Reflections", icon: Sparkles, description: "Review past performance." },
+  { href: "/study-planner", label: "Study Planner", icon: CalendarDays, description: "Plan your study sessions." },
 ];
 
 export default function DashboardPage() {
@@ -62,17 +63,19 @@ export default function DashboardPage() {
           <Card>
             <CardHeader className="flex items-center justify-between">
               <div>
-                <CardTitle className="font-headline">Daily Study Goals</CardTitle>
-                <CardDescription>Your tasks for today.</CardDescription>
+                <CardTitle className="font-headline">Today's Study Plan</CardTitle>
+                <CardDescription>Your AI-generated goals for today.</CardDescription>
               </div>
-              <Button variant="outline" size="sm"><PlusCircle className="mr-2 h-4 w-4" /> Add Goal</Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/study-planner"><PlusCircle className="mr-2 h-4 w-4" /> New Plan</Link>
+              </Button>
             </CardHeader>
             <CardContent className="space-y-4">
               {studyGoals.length === 0 ? (
                 <div className="text-center text-muted-foreground py-8">
                   <BookOpen className="mx-auto h-10 w-10 mb-4" />
-                  <p>No study goals set for today.</p>
-                  <p className="text-sm">Click "Add Goal" to plan your session.</p>
+                  <p>No study plan generated for today.</p>
+                  <p className="text-sm">Go to the Study Planner to create one.</p>
                 </div>
               ) : (
                 <>
