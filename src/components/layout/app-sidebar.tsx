@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -17,7 +18,6 @@ import {
   Bot,
   FileQuestion,
   GraduationCap,
-  Trophy,
   LogOut,
 } from "lucide-react";
 
@@ -27,7 +27,6 @@ const navItems = [
   { href: "/ai-tutor", label: "AI Tutor", icon: Bot },
   { href: "/exam-prep", label: "Exam Prep", icon: FileQuestion },
   { href: "/textbook-ai", label: "Textbook AI", icon: GraduationCap },
-  { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
 ];
 
 export function AppSidebar() {

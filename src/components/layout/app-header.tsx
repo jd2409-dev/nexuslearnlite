@@ -1,7 +1,9 @@
+
 "use client";
 
+import { useState, useEffect } from 'react';
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,11 +13,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Award, BarChart, Coins, LogOut, User, Zap } from "lucide-react";
+import { BarChart, Coins, LogOut, User, Zap } from "lucide-react";
 import Link from 'next/link';
 
 export function AppHeader() {
   const { isMobile } = useSidebar();
+  const [xp, setXp] = useState(1250);
+
+  useEffect(() => {
+    const startDate = new Date('2024-01-01');
+    const today = new Date();
+    const diffTime = Math.abs(today.getTime() - startDate.getTime());
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    setXp(1250 + diffDays);
+  }, []);
 
   return (
     <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
@@ -25,7 +36,7 @@ export function AppHeader() {
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2 text-sm font-semibold text-accent">
           <Zap className="h-5 w-5 fill-current" />
-          <span>1,250 XP</span>
+          <span>{xp.toLocaleString()} XP</span>
         </div>
         <div className="flex items-center gap-2 text-sm font-semibold text-accent">
           <Coins className="h-5 w-5" />
@@ -54,10 +65,6 @@ export function AppHeader() {
             <DropdownMenuItem>
               <User className="mr-2 h-4 w-4" />
               <span>Profile</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Award className="mr-2 h-4 w-4" />
-              <span>Achievements</span>
             </DropdownMenuItem>
             <DropdownMenuItem>
               <BarChart className="mr-2 h-4 w-4" />

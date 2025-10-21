@@ -1,16 +1,30 @@
+
+"use client";
+
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bot, FileQuestion, GraduationCap, Trophy, ArrowRight, Zap, Coins, Star, BookOpen } from "lucide-react";
+import { Bot, FileQuestion, GraduationCap, ArrowRight, Zap, Coins, PlusCircle, BookOpen } from "lucide-react";
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
 
 const quickAccessItems = [
   { href: "/ai-tutor", label: "AI Tutor", icon: Bot, description: "Get instant homework help." },
   { href: "/exam-prep", label: "Mock Exams", icon: FileQuestion, description: "Test your knowledge." },
   { href: "/textbook-ai", label: "Textbook AI", icon: GraduationCap, description: "Upload and ask questions." },
-  { href: "/leaderboard", label: "Leaderboard", icon: Trophy, description: "See where you rank." },
 ];
 
 export default function DashboardPage() {
+  const [xp, setXp] = useState(1250);
+  const [studyGoals, setStudyGoals] = useState([]);
+
+  useEffect(() => {
+    const startDate = new Date('2024-01-01');
+    const today = new Date();
+    const diffTime = Math.abs(today.getTime() - startDate.getTime());
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    setXp(1250 + diffDays);
+  }, []);
+
   return (
     <div className="container mx-auto space-y-8">
       <div className="space-y-2">
@@ -18,14 +32,14 @@ export default function DashboardPage() {
         <p className="text-muted-foreground">Here's your personalized study hub. Let's make today productive.</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Experience Points</CardTitle>
             <Zap className="h-4 w-4 text-accent" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-accent">1,250 XP</div>
+            <div className="text-2xl font-bold text-accent">{xp.toLocaleString()} XP</div>
             <p className="text-xs text-muted-foreground">Level 5</p>
           </CardContent>
         </Card>
@@ -39,50 +53,30 @@ export default function DashboardPage() {
             <p className="text-xs text-muted-foreground">+20 this week</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Achievements</CardTitle>
-            <Star className="h-4 w-4 text-accent" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">12 / 50</div>
-            <p className="text-xs text-muted-foreground">"Quiz Master" unlocked!</p>
-          </CardContent>
-        </Card>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-5">
         <div className="lg:col-span-3 space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle className="font-headline">Daily Study Goals</CardTitle>
-              <CardDescription>Your AI-powered recommendations for today.</CardDescription>
+            <CardHeader className="flex items-center justify-between">
+              <div>
+                <CardTitle className="font-headline">Daily Study Goals</CardTitle>
+                <CardDescription>Your tasks for today.</CardDescription>
+              </div>
+              <Button variant="outline" size="sm"><PlusCircle className="mr-2 h-4 w-4" /> Add Goal</Button>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center gap-4 p-3 rounded-lg hover:bg-card/50 transition-colors">
-                <div className="p-3 bg-primary/10 rounded-full">
-                  <BookOpen className="h-6 w-6 text-primary" />
+              {studyGoals.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">
+                  <BookOpen className="mx-auto h-10 w-10 mb-4" />
+                  <p>No study goals set for today.</p>
+                  <p className="text-sm">Click "Add Goal" to plan your session.</p>
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold">Review Physics: Chapter 3</h3>
-                  <p className="text-sm text-muted-foreground">Focus on electromagnetism. Your last quiz showed this is a weak area.</p>
-                </div>
-                <Button variant="ghost" size="icon" asChild>
-                  <Link href="/subjects/physics"><ArrowRight /></Link>
-                </Button>
-              </div>
-              <div className="flex items-center gap-4 p-3 rounded-lg hover:bg-card/50 transition-colors">
-                 <div className="p-3 bg-primary/10 rounded-full">
-                  <FileQuestion className="h-6 w-6 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold">Take a 10-question Math Quiz</h3>
-                  <p className="text-sm text-muted-foreground">Strengthen your algebra skills and earn 50 XP.</p>
-                </div>
-                <Button variant="ghost" size="icon" asChild>
-                   <Link href="/exam-prep"><ArrowRight /></Link>
-                </Button>
-              </div>
+              ) : (
+                <>
+                  {/* Map through study goals here */}
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
