@@ -6,9 +6,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { generateQuiz, GenerateQuizOutput } from "@/ai/flows/generate-quiz-flow";
+import { generateReflections } from "@/ai/flows/generate-reflections-flow";
 import { useToast } from "@/hooks/use-toast";
-import { useUser, useFirestore, addDocumentNonBlocking } from "@/firebase";
-import { collection, serverTimestamp } from 'firebase/firestore';
+import { useUser, useFirestore } from "@/firebase";
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -123,23 +124,45 @@ export function QuizGeneratorClient() {
     setScore(finalScore);
     setQuizSubmitted(true);
 
+    const questionsData = quiz.questions.map((q, i) => ({
+        questionText: q.questionText,
+        userAnswer: userAnswers[i] || "Not answered",
+        correctAnswer: q.answer,
+    }));
+
+    // Generate reflections immediately
+    const reflectionsResult = await generateReflections({
+        quizHistory: [{
+            quizTitle: quiz.title,
+            score: finalScore,
+            questions: questionsData,
+        }]
+    });
+
     const quizResultData = {
         userId: user.uid,
         quizTitle: quiz.title,
         score: finalScore,
-        questions: quiz.questions.map((q, i) => ({
-            questionText: q.questionText,
-            userAnswer: userAnswers[i] || "Not answered",
-            correctAnswer: q.answer,
-        })),
+        questions: questionsData,
         takenAt: serverTimestamp(),
+        aiSuggestions: reflectionsResult.suggestions || [],
     };
-    const resultsCollection = collection(firestore, 'users', user.uid, 'quizResults');
-    addDocumentNonBlocking(resultsCollection, quizResultData);
-    toast({
-        title: "Quiz result saved!",
-        description: "Your results will be available in your reflections."
-    });
+
+    try {
+        const resultsCollection = collection(firestore, 'users', user.uid, 'quizResults');
+        await addDoc(resultsCollection, quizResultData);
+        toast({
+            title: "Quiz result saved!",
+            description: "Your results and AI feedback are available in your reflections."
+        });
+    } catch (error) {
+        console.error("Error saving quiz result:", error);
+        toast({
+            variant: "destructive",
+            title: "Failed to save quiz result",
+            description: "Please check your connection and try again."
+        });
+    }
   };
 
   const handleRestartQuiz = () => {

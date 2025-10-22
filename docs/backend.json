@@ -266,6 +266,13 @@
           "type": "string",
           "format": "date-time",
           "description": "The timestamp when the quiz was completed."
+        },
+        "aiSuggestions": {
+          "type": "array",
+          "description": "AI-generated suggestions for improvement based on the quiz result.",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "required": ["userId", "quizTitle", "score", "questions", "takenAt"]
