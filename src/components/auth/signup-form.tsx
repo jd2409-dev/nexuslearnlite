@@ -111,7 +111,7 @@ export function SignupForm() {
       await setDocumentNonBlocking(userDocRef, userProfile, { merge: true });
 
       toast({
-        title: "Welcome to NexusLearn AI!",
+        title: "Welcome to NexusLearn Lite!",
         description: "You've received a welcome reward of 100 XP and 50 coins.",
       });
 
