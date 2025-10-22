@@ -4,13 +4,15 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Video, StopCircle, Download, Loader2, Book } from "lucide-react";
+import { Video, StopCircle, Download, Loader2, Book, FileText, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, addDoc, serverTimestamp, query, orderBy } from "firebase/firestore";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { format } from 'date-fns';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 
 type JournalEntry = {
     id: string;
@@ -26,6 +28,7 @@ export function LearningJournalClient() {
     const [isRecording, setIsRecording] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+    const [textNote, setTextNote] = useState("");
     const videoRef = useRef<HTMLVideoElement>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const recordedChunksRef = useRef<Blob[]>([]);
@@ -56,13 +59,8 @@ export function LearningJournalClient() {
         } catch (error) {
             console.error('Error accessing media devices:', error);
             setHasPermission(false);
-            toast({
-                variant: 'destructive',
-                title: 'Permissions Denied',
-                description: 'Please enable camera and microphone permissions in your browser settings.',
-            });
         }
-    }, [toast]);
+    }, []);
     
     useEffect(() => {
         getPermissions();
@@ -71,7 +69,14 @@ export function LearningJournalClient() {
     const handleStartRecording = async () => {
         if (!videoRef.current?.srcObject) {
             await getPermissions();
-            if (!videoRef.current?.srcObject) return;
+            if (!videoRef.current?.srcObject) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Permissions Denied',
+                    description: 'Please enable camera and microphone permissions in your browser settings.',
+                });
+                return;
+            };
         }
 
         const stream = videoRef.current.srcObject as MediaStream;
@@ -88,7 +93,7 @@ export function LearningJournalClient() {
             const blob = new Blob(recordedChunksRef.current, { type: "video/webm" });
             recordedChunksRef.current = [];
 
-            if (!user || !firestore) {
+            if (!user || !firestore || !journalEntriesRef) {
                 toast({ variant: 'destructive', title: 'You must be logged in to save an entry.' });
                 setIsSaving(false);
                 return;
@@ -135,6 +140,34 @@ export function LearningJournalClient() {
         stream?.getTracks().forEach(track => track.stop());
     };
 
+    const handleSaveTextNote = async () => {
+        if (!textNote.trim()) {
+            toast({ variant: 'destructive', title: 'Note cannot be empty.' });
+            return;
+        }
+        if (!user || !firestore || !journalEntriesRef) {
+            toast({ variant: 'destructive', title: 'You must be logged in to save a note.' });
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            await addDoc(journalEntriesRef, {
+                userId: user.uid,
+                text: textNote,
+                createdAt: serverTimestamp(),
+            });
+            toast({ title: 'Note saved!' });
+            setTextNote("");
+        } catch (error) {
+            console.error("Error saving note: ", error);
+            toast({ variant: 'destructive', title: 'Failed to save note.' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+
     const handleDownload = (url: string) => {
         const a = document.createElement('a');
         a.href = url;
@@ -148,40 +181,71 @@ export function LearningJournalClient() {
         <div className="container mx-auto space-y-8">
             <div className="mb-6">
                 <h1 className="text-3xl font-bold tracking-tight font-headline">Learning Journal</h1>
-                <p className="text-muted-foreground">Record video notes to capture your thoughts and learnings.</p>
+                <p className="text-muted-foreground">Record video or text notes to capture your thoughts and learnings.</p>
             </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>New Video Entry</CardTitle>
-                    <CardDescription>Click the button below to start recording your video and audio.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="aspect-video w-full bg-muted rounded-md overflow-hidden flex items-center justify-center">
-                        <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
-                    </div>
-                    {hasPermission === false && (
-                        <Alert variant="destructive" className="mt-4">
-                            <AlertTitle>Camera & Mic Access Denied</AlertTitle>
-                            <AlertDescription>
-                            Please enable camera and microphone permissions in your browser settings to use this feature.
-                            </AlertDescription>
-                        </Alert>
-                    )}
-                     <div className="flex items-center justify-center gap-2">
-                        {!isRecording ? (
-                            <Button onClick={handleStartRecording} size="lg" disabled={isSaving || hasPermission === false}>
-                                <Video className="mr-2 h-4 w-4" /> Start Recording
+            <Tabs defaultValue="video" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="video"><Video className="mr-2 h-4 w-4" />Video Entry</TabsTrigger>
+                    <TabsTrigger value="text"><FileText className="mr-2 h-4 w-4" />Text Entry</TabsTrigger>
+                </TabsList>
+                <TabsContent value="video">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>New Video Entry</CardTitle>
+                            <CardDescription>Click the button below to start recording your video and audio.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="aspect-video w-full bg-muted rounded-md overflow-hidden flex items-center justify-center">
+                                <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+                            </div>
+                            {hasPermission === false && (
+                                <Alert variant="destructive" className="mt-4">
+                                    <AlertTitle>Camera & Mic Access Denied</AlertTitle>
+                                    <AlertDescription>
+                                    Please enable camera and microphone permissions in your browser settings to use this feature.
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+                            <div className="flex items-center justify-center gap-2">
+                                {!isRecording ? (
+                                    <Button onClick={handleStartRecording} size="lg" disabled={isSaving || hasPermission === false}>
+                                        <Video className="mr-2 h-4 w-4" /> Start Recording
+                                    </Button>
+                                ) : (
+                                    <Button onClick={handleStopRecording} size="lg" variant="destructive" disabled={isSaving}>
+                                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <StopCircle className="mr-2 h-4 w-4" />}
+                                        {isSaving ? "Saving..." : "Stop Recording"}
+                                    </Button>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                <TabsContent value="text">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>New Text Note</CardTitle>
+                            <CardDescription>Write down your thoughts, summaries, or questions.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <Textarea
+                                placeholder="Start typing your notes here..."
+                                rows={8}
+                                value={textNote}
+                                onChange={(e) => setTextNote(e.target.value)}
+                                disabled={isSaving}
+                                className="text-base"
+                            />
+                            <Button onClick={handleSaveTextNote} disabled={isSaving || !textNote.trim()}>
+                                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                                Save Note
                             </Button>
-                        ) : (
-                            <Button onClick={handleStopRecording} size="lg" variant="destructive" disabled={isSaving}>
-                                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <StopCircle className="mr-2 h-4 w-4" />}
-                                {isSaving ? "Saving..." : "Stop Recording"}
-                            </Button>
-                        )}
-                    </div>
-                </CardContent>
-            </Card>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
+
 
             <Card>
                 <CardHeader>
@@ -194,7 +258,7 @@ export function LearningJournalClient() {
                         <div className="text-center text-muted-foreground py-8">
                             <Book className="mx-auto h-10 w-10 mb-4" />
                             <p>No journal entries yet.</p>
-                            <p className="text-sm">Create a video entry above to get started.</p>
+                            <p className="text-sm">Create a video or text entry above to get started.</p>
                         </div>
                     )}
                     <div className="space-y-4">
@@ -226,3 +290,5 @@ export function LearningJournalClient() {
         </div>
     );
 }
+
+    
