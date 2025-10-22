@@ -32,6 +32,8 @@ export function StudyPlannerClient() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      examTopic: "",
+      examDate: undefined,
       hoursPerDay: 2,
     },
   });
