@@ -19,6 +19,7 @@ import {
   Sparkles,
   CalendarDays,
   LogOut,
+  PenSquare,
 } from "lucide-react";
 import { useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/quiz-generator", label: "Quiz Generator", icon: Puzzle },
   { href: "/learning-journal", label: "Learning Journal", icon: Notebook },
+  { href: "/essay-grader", label: "Essay Grader", icon: PenSquare },
   { href: "/reflections", label: "Reflections", icon: Sparkles },
   { href: "/study-planner", label: "Study Planner", icon: CalendarDays },
 ];
