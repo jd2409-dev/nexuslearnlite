@@ -8,8 +8,8 @@ import * as z from "zod";
 import { generateQuiz, GenerateQuizOutput } from "@/ai/flows/generate-quiz-flow";
 import { generateReflections, GenerateReflectionsOutput } from "@/ai/flows/generate-reflections-flow";
 import { useToast } from "@/hooks/use-toast";
-import { useUser, useFirestore } from "@/firebase";
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import { addDoc, collection, serverTimestamp, doc, updateDoc, getDoc } from 'firebase/firestore';
 
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -124,6 +124,25 @@ export function QuizGeneratorClient() {
     setScore(finalScore);
     setQuizSubmitted(true);
 
+    // Award XP if score is above 60
+    if (finalScore > 60) {
+        try {
+            const userDocRef = doc(firestore, 'users', user.uid);
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+                const currentXp = userDoc.data().xp || 0;
+                await updateDoc(userDocRef, { xp: currentXp + 10 });
+                toast({
+                    title: "XP Gained!",
+                    description: "You earned 10 XP for scoring over 60%!",
+                });
+            }
+        } catch (error) {
+            console.error("Failed to award XP:", error);
+            // Don't block the user for this, just log it.
+        }
+    }
+
     const questionsData = quiz.questions.map((q, i) => ({
         questionText: q.questionText,
         userAnswer: userAnswers[i] || "Not answered",
@@ -158,6 +177,12 @@ export function QuizGeneratorClient() {
         });
     } catch(error) {
         console.error("Failed to save quiz results or generate reflections:", error);
+        const contextualError = new FirestorePermissionError({
+            operation: 'create',
+            path: `users/${user.uid}/quizResults`,
+            requestResourceData: { quizTitle: quiz.title, score: finalScore }
+        });
+        errorEmitter.emit('permission-error', contextualError);
         toast({
             variant: "destructive",
             title: "Could not save results",
