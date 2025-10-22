@@ -7,6 +7,7 @@ import { Puzzle, Notebook, Sparkles, CalendarDays, ArrowRight, Zap, Coins, PlusC
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useUser } from "@/firebase";
+import { PomodoroTimer } from "@/components/features/pomodoro-timer";
 
 const quickAccessItems = [
   { href: "/quiz-generator", label: "Quiz Generator", icon: Puzzle, description: "Create a quiz on any topic." },
@@ -84,6 +85,7 @@ export default function DashboardPage() {
               )}
             </CardContent>
           </Card>
+          <PomodoroTimer />
         </div>
         
         <div className="lg:col-span-2">
