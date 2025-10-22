@@ -1,13 +1,20 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, limit } from "firebase/firestore";
 
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { TrendingUp, Sparkles, AlertCircle, Loader2, BarChart } from "lucide-react";
+import { TrendingUp, Sparkles, AlertCircle, Loader2, BarChart, FileQuestion, MessageSquareQuote, CheckCircle } from "lucide-react";
 import { ResponsiveContainer, Bar, XAxis, YAxis, Tooltip, BarChart as RechartsBarChart } from 'recharts';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+
+type AISuggestion = {
+    observation: string;
+    suggestion: string;
+    example: string;
+}
 
 type QuizResult = {
     id: string;
@@ -22,7 +29,7 @@ type QuizResult = {
         seconds: number;
         nanoseconds: number;
     } | Date;
-    aiSuggestions?: string[];
+    aiSuggestions?: AISuggestion[];
 };
 
 export function ReflectionsClient() {
@@ -41,8 +48,8 @@ export function ReflectionsClient() {
 
     const { data: pastQuizzes, isLoading: isLoadingQuizzes } = useCollection<QuizResult>(quizResultsQuery);
 
-    const chartData = pastQuizzes?.map(q => ({ name: q.quizTitle, score: q.score })).reverse() || [];
-    const latestSuggestions = pastQuizzes?.[0]?.aiSuggestions || [];
+    const chartData = useMemo(() => pastQuizzes?.map(q => ({ name: q.quizTitle, score: q.score })).reverse() || [], [pastQuizzes]);
+    const latestSuggestions = useMemo(() => pastQuizzes?.[0]?.aiSuggestions || [], [pastQuizzes]);
 
     return (
         <div className="container mx-auto space-y-8">
@@ -100,14 +107,28 @@ export function ReflectionsClient() {
                     )}
 
                     {!isLoadingQuizzes && latestSuggestions.length > 0 && (
-                        <ul className="space-y-3 list-disc list-inside">
-                            {latestSuggestions.map((suggestion, index) => (
-                                <li key={index} className="flex items-start gap-3">
-                                    <TrendingUp className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                                    <span>{suggestion}</span>
-                                </li>
+                        <Accordion type="single" collapsible className="w-full">
+                            {latestSuggestions.map((item, index) => (
+                                <AccordionItem value={`item-${index}`} key={index}>
+                                    <AccordionTrigger className="text-left hover:no-underline">
+                                        <div className="flex items-start gap-3">
+                                            <TrendingUp className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
+                                            <span className="font-semibold">{item.observation}</span>
+                                        </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent className="space-y-4 pl-8">
+                                        <div className="flex items-start gap-3 text-muted-foreground">
+                                             <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-1" />
+                                             <p><span className="font-semibold text-foreground">What to do:</span> {item.suggestion}</p>
+                                        </div>
+                                        <div className="flex items-start gap-3 text-muted-foreground">
+                                            <FileQuestion className="h-5 w-5 text-blue-500 flex-shrink-0 mt-1" />
+                                            <p><span className="font-semibold text-foreground">Example from your quiz:</span> "{item.example}"</p>
+                                        </div>
+                                    </AccordionContent>
+                                </AccordionItem>
                             ))}
-                        </ul>
+                        </Accordion>
                     )}
                     
                     {!isLoadingQuizzes && (!pastQuizzes || pastQuizzes.length === 0) && (
