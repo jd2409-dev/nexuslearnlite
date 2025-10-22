@@ -50,6 +50,8 @@ export function QuizGeneratorClient() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       source: 'topic',
+      topic: "",
+      file: undefined,
       questionType: 'mcqs',
       numberOfQuestions: 5,
     },
