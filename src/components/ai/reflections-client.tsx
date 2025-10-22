@@ -7,8 +7,8 @@ import { collection, query, orderBy, limit } from "firebase/firestore";
 import { generateReflections, GenerateReflectionsOutput } from "@/ai/flows/generate-reflections-flow";
 
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { BarChart, TrendingUp, Sparkles, AlertCircle, Loader2 } from "lucide-react";
-import { ResponsiveContainer, Bar, XAxis, YAxis, Tooltip } from 'recharts';
+import { TrendingUp, Sparkles, AlertCircle, Loader2 } from "lucide-react";
+import { ResponsiveContainer, Bar, XAxis, YAxis, Tooltip, BarChart } from 'recharts';
 import { useToast } from "@/hooks/use-toast";
 
 type QuizResult = {
@@ -85,7 +85,7 @@ export function ReflectionsClient() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><BarChart/> Past Quiz Performance</CardTitle>
+                    <CardTitle className="flex items-center gap-2"><BarChart className="h-5 w-5 text-muted-foreground" /> Past Quiz Performance</CardTitle>
                     <CardDescription>A summary of your recent quiz scores.</CardDescription>
                 </CardHeader>
                 <CardContent>
