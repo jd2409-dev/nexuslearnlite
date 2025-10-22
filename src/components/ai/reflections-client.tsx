@@ -6,7 +6,7 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebas
 import { collection, query, orderBy, limit } from "firebase/firestore";
 
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { TrendingUp, Sparkles, AlertCircle, Loader2, BarChart, FileQuestion, MessageSquareQuote, CheckCircle } from "lucide-react";
+import { TrendingUp, Sparkles, AlertCircle, Loader2, BarChart, FileQuestion, CheckCircle } from "lucide-react";
 import { ResponsiveContainer, Bar, XAxis, YAxis, Tooltip, BarChart as RechartsBarChart } from 'recharts';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
@@ -131,9 +131,11 @@ export function ReflectionsClient() {
                         </Accordion>
                     )}
                     
-                    {!isLoadingQuizzes && (!pastQuizzes || pastQuizzes.length === 0) && (
-                         <div className="text-center text-muted-foreground py-4">
-                            <p>Complete a quiz to get personalized feedback.</p>
+                    {!isLoadingQuizzes && (!pastQuizzes || pastQuizzes.length === 0 || latestSuggestions.length === 0) && (
+                         <div className="text-center text-muted-foreground py-8">
+                             <AlertCircle className="mx-auto h-10 w-10 mb-4" />
+                            <p>No AI suggestions available.</p>
+                            <p className="text-sm">Complete a quiz to get personalized feedback.</p>
                         </div>
                     )}
                 </CardContent>
@@ -141,3 +143,5 @@ export function ReflectionsClient() {
         </div>
     );
 }
+
+    

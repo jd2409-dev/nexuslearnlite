@@ -20,7 +20,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Loader2, Wand2, Upload, ArrowLeft, ArrowRight, CheckCircle, XCircle } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
-import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 const formSchema = z.object({
   source: z.enum(['topic', 'pdf']),
@@ -131,30 +130,40 @@ export function QuizGeneratorClient() {
         correctAnswer: q.answer,
     }));
 
-    // Generate reflections immediately
-    const reflectionsResult: GenerateReflectionsOutput = await generateReflections({
-        quizHistory: [{
+    try {
+        // Generate reflections immediately
+        const reflectionsResult: GenerateReflectionsOutput = await generateReflections({
+            quizHistory: [{
+                quizTitle: quiz.title,
+                score: finalScore,
+                questions: questionsData,
+            }]
+        });
+
+        const quizResultData = {
+            userId: user.uid,
             quizTitle: quiz.title,
             score: finalScore,
             questions: questionsData,
-        }]
-    });
+            takenAt: serverTimestamp(),
+            aiSuggestions: reflectionsResult.insights || [],
+        };
 
-    const quizResultData = {
-        userId: user.uid,
-        quizTitle: quiz.title,
-        score: finalScore,
-        questions: questionsData,
-        takenAt: serverTimestamp(),
-        aiSuggestions: reflectionsResult.insights || [],
-    };
-
-    const resultsCollection = collection(firestore, 'users', user.uid, 'quizResults');
-    addDocumentNonBlocking(resultsCollection, quizResultData);
-    toast({
-        title: "Quiz result saved!",
-        description: "Your results and AI feedback are available in your reflections."
-    });
+        const resultsCollection = collection(firestore, 'users', user.uid, 'quizResults');
+        await addDoc(resultsCollection, quizResultData);
+        
+        toast({
+            title: "Quiz result saved!",
+            description: "Your results and AI feedback are available in your reflections."
+        });
+    } catch(error) {
+        console.error("Failed to save quiz results or generate reflections:", error);
+        toast({
+            variant: "destructive",
+            title: "Could not save results",
+            description: "There was an error saving your quiz results. Please try again.",
+        });
+    }
   };
 
   const handleRestartQuiz = () => {
@@ -341,3 +350,5 @@ export function QuizGeneratorClient() {
     </div>
   );
 }
+
+    
