@@ -43,6 +43,9 @@ const prompt = ai.definePrompt({
   name: 'generateQuizPrompt',
   input: {schema: GenerateQuizInputSchema},
   output: {schema: GenerateQuizOutputSchema},
+  helpers: {
+    eq: (a, b) => a === b,
+  },
   prompt: `You are an expert quiz creator for students. Generate a quiz based on the provided details.
 
   Source Type: {{{sourceType}}}
