@@ -60,6 +60,12 @@ const prompt = ai.definePrompt({
   {{/each}}
 
   Now, provide your suggestions for improvement.`,
+  // Add retry logic for transient errors like 503
+  backoff: {
+    maxRetries: 3,
+    delay: 2000, // Start with 2 seconds
+    multiplier: 2, // Double the delay each time
+  },
 });
 
 
