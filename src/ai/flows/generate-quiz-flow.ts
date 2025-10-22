@@ -10,6 +10,12 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+import Handlebars from 'handlebars';
+
+// Register the 'eq' helper globally before defining any prompts.
+Handlebars.registerHelper('eq', function (a, b) {
+  return a === b;
+});
 
 const GenerateQuizInputSchema = z.object({
   sourceType: z.enum(['topic', 'pdf']).describe('The source of the content for the quiz.'),
@@ -43,9 +49,6 @@ const prompt = ai.definePrompt({
   name: 'generateQuizPrompt',
   input: {schema: GenerateQuizInputSchema},
   output: {schema: GenerateQuizOutputSchema},
-  helpers: {
-    eq: (a, b) => a === b,
-  },
   prompt: `You are an expert quiz creator for students. Generate a quiz based on the provided details.
 
   Source Type: {{{sourceType}}}
