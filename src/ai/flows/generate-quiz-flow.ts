@@ -51,7 +51,8 @@ const prompt = ai.definePrompt({
   Source Type: {{{sourceType}}}
   {{#if (eq sourceType 'topic')}}
   Topic: {{{content}}}
-  {{else}}
+  {{/if}}
+  {{#if (eq sourceType 'pdf')}}
   PDF Document: {{media url=content}}
   {{/if}}
   Question Type: {{{questionType}}}
