@@ -1,15 +1,15 @@
 
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Mic, MicOff, Video, VideoOff, Save, Loader2, Book } from "lucide-react";
+import { Video, StopCircle, Download, Loader2, Book } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, addDoc, serverTimestamp, query, orderBy } from "firebase/firestore";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { format } from 'date-fns';
 
 type JournalEntry = {
@@ -19,15 +19,17 @@ type JournalEntry = {
         seconds: number;
         nanoseconds: number;
     } | Date;
+    videoUrl?: string;
 };
 
 export function LearningJournalClient() {
-    const [text, setText] = useState("");
     const [isRecording, setIsRecording] = useState(false);
-    const [isCameraOn, setIsCameraOn] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+    const [hasPermission, setHasPermission] = useState<boolean | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const recordedChunksRef = useRef<Blob[]>([]);
+    
     const { toast } = useToast();
     const { user } = useUser();
     const firestore = useFirestore();
@@ -44,163 +46,142 @@ export function LearningJournalClient() {
     
     const { data: entries, isLoading: isLoadingEntries } = useCollection<JournalEntry>(journalEntriesQuery);
 
-    const recognitionRef = useRef<any>(null);
-
-    useEffect(() => {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (SpeechRecognition) {
-            recognitionRef.current = new SpeechRecognition();
-            recognitionRef.current.continuous = true;
-            recognitionRef.current.interimResults = true;
-            recognitionRef.current.onresult = (event: any) => {
-                let finalTranscript = '';
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) {
-                        finalTranscript += event.results[i][0].transcript;
-                    }
-                }
-                if (finalTranscript) {
-                    setText(prev => prev.trim() + ' ' + finalTranscript.trim());
-                }
-            };
-        }
-    }, []);
-
-    const toggleRecording = () => {
-        if (!recognitionRef.current) {
-            toast({ variant: "destructive", title: "Speech recognition not supported in your browser."});
-            return;
-        }
-        if (isRecording) {
-            recognitionRef.current.stop();
-            setIsRecording(false);
-        } else {
-            recognitionRef.current.start();
-            setIsRecording(true);
-        }
-    };
-    
-    useEffect(() => {
-        const getCameraPermission = async () => {
-          try {
-            const stream = await navigator.mediaDevices.getUserMedia({video: true});
-            setHasCameraPermission(true);
-    
-            if (videoRef.current) {
-              videoRef.current.srcObject = stream;
-            }
-          } catch (error) {
-            console.error('Error accessing camera:', error);
-            setHasCameraPermission(false);
-            toast({
-              variant: 'destructive',
-              title: 'Camera Access Denied',
-              description: 'Please enable camera permissions in your browser settings to use this feature.',
-            });
-          }
-        };
-    
-        if (isCameraOn) {
-            getCameraPermission();
-        } else {
-            if (videoRef.current && videoRef.current.srcObject) {
-                const stream = videoRef.current.srcObject as MediaStream;
-                stream.getTracks().forEach(track => track.stop());
-                videoRef.current.srcObject = null;
-            }
-        }
-    }, [isCameraOn, toast]);
-
-
-    const toggleCamera = () => {
-        setIsCameraOn(prev => !prev);
-    };
-    
-    const handleSaveEntry = async () => {
-        if (!user) {
-            toast({ variant: 'destructive', title: 'You must be logged in to save an entry.' });
-            return;
-        }
-        if (!text.trim()) {
-            toast({ variant: 'destructive', title: 'Cannot save an empty entry.' });
-            return;
-        }
-        if (!journalEntriesRef) return;
-
-        setIsSaving(true);
+    const getPermissions = useCallback(async () => {
         try {
-            await addDoc(journalEntriesRef, {
-                userId: user.uid,
-                text: text,
-                createdAt: serverTimestamp(),
-            });
-            setText("");
-            toast({ title: 'Journal entry saved!' });
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            setHasPermission(true);
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
         } catch (error) {
-            console.error("Error saving entry: ", error);
-            toast({ variant: 'destructive', title: 'Failed to save entry.' });
-        } finally {
-            setIsSaving(false);
+            console.error('Error accessing media devices:', error);
+            setHasPermission(false);
+            toast({
+                variant: 'destructive',
+                title: 'Permissions Denied',
+                description: 'Please enable camera and microphone permissions in your browser settings.',
+            });
         }
+    }, [toast]);
+    
+    useEffect(() => {
+        getPermissions();
+    }, [getPermissions]);
+
+    const handleStartRecording = async () => {
+        if (!videoRef.current?.srcObject) {
+            await getPermissions();
+            if (!videoRef.current?.srcObject) return;
+        }
+
+        const stream = videoRef.current.srcObject as MediaStream;
+        mediaRecorderRef.current = new MediaRecorder(stream);
+        
+        mediaRecorderRef.current.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+                recordedChunksRef.current.push(event.data);
+            }
+        };
+
+        mediaRecorderRef.current.onstop = async () => {
+            setIsSaving(true);
+            const blob = new Blob(recordedChunksRef.current, { type: "video/webm" });
+            recordedChunksRef.current = [];
+
+            if (!user || !firestore) {
+                toast({ variant: 'destructive', title: 'You must be logged in to save an entry.' });
+                setIsSaving(false);
+                return;
+            }
+            
+            try {
+                // Upload to Firebase Storage
+                const storage = getStorage();
+                const videoId = `${Date.now()}.webm`;
+                const sRef = storageRef(storage, `users/${user.uid}/journalEntries/${videoId}`);
+                const snapshot = await uploadBytes(sRef, blob);
+                const downloadURL = await getDownloadURL(snapshot.ref);
+
+                // Save reference to Firestore
+                await addDoc(journalEntriesRef, {
+                    userId: user.uid,
+                    text: `Video Note - ${format(new Date(), 'PPP')}`,
+                    createdAt: serverTimestamp(),
+                    videoUrl: downloadURL,
+                });
+
+                toast({ title: 'Video journal entry saved!' });
+            } catch (error) {
+                console.error("Error saving entry: ", error);
+                toast({ variant: 'destructive', title: 'Failed to save video entry.' });
+            } finally {
+                setIsSaving(false);
+                // Restart preview stream
+                getPermissions();
+            }
+        };
+        
+        recordedChunksRef.current = [];
+        mediaRecorderRef.current.start();
+        setIsRecording(true);
+    };
+
+    const handleStopRecording = () => {
+        if (mediaRecorderRef.current && isRecording) {
+            mediaRecorderRef.current.stop();
+            setIsRecording(false);
+        }
+        const stream = videoRef.current?.srcObject as MediaStream;
+        stream?.getTracks().forEach(track => track.stop());
+    };
+
+    const handleDownload = (url: string) => {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `nexuslearn-entry-${new Date().toISOString()}.webm`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     };
 
     return (
         <div className="container mx-auto space-y-8">
             <div className="mb-6">
                 <h1 className="text-3xl font-bold tracking-tight font-headline">Learning Journal</h1>
-                <p className="text-muted-foreground">Record your notes by typing, speaking, or showing content on camera.</p>
+                <p className="text-muted-foreground">Record video notes to capture your thoughts and learnings.</p>
             </div>
 
             <Card>
                 <CardHeader>
-                    <CardTitle>New Journal Entry</CardTitle>
-                    <CardDescription>Capture your thoughts and learnings for future reference.</CardDescription>
+                    <CardTitle>New Video Entry</CardTitle>
+                    <CardDescription>Click the button below to start recording your video and audio.</CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
-                        <Textarea 
-                            placeholder="Start typing your notes here..."
-                            value={text}
-                            onChange={(e) => setText(e.target.value)}
-                            rows={10}
-                            className="text-base"
-                        />
-                         <div className="flex items-center gap-2">
-                            <Button onClick={toggleRecording} variant={isRecording ? "destructive" : "outline"} size="icon" aria-label="Toggle voice recording">
-                                {isRecording ? <MicOff /> : <Mic />}
+                <CardContent className="space-y-4">
+                    <div className="aspect-video w-full bg-muted rounded-md overflow-hidden flex items-center justify-center">
+                        <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+                    </div>
+                    {hasPermission === false && (
+                        <Alert variant="destructive" className="mt-4">
+                            <AlertTitle>Camera & Mic Access Denied</AlertTitle>
+                            <AlertDescription>
+                            Please enable camera and microphone permissions in your browser settings to use this feature.
+                            </AlertDescription>
+                        </Alert>
+                    )}
+                     <div className="flex items-center justify-center gap-2">
+                        {!isRecording ? (
+                            <Button onClick={handleStartRecording} size="lg" disabled={isSaving || hasPermission === false}>
+                                <Video className="mr-2 h-4 w-4" /> Start Recording
                             </Button>
-                             <Button onClick={toggleCamera} variant={isCameraOn ? "destructive" : "outline"} size="icon" aria-label="Toggle camera">
-                                {isCameraOn ? <VideoOff /> : <Video />}
+                        ) : (
+                            <Button onClick={handleStopRecording} size="lg" variant="destructive" disabled={isSaving}>
+                                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <StopCircle className="mr-2 h-4 w-4" />}
+                                {isSaving ? "Saving..." : "Stop Recording"}
                             </Button>
-                            <Button onClick={handleSaveEntry} disabled={isSaving} className="ml-auto">
-                                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                                 Save Entry
-                            </Button>
-                        </div>
+                        )}
                     </div>
                 </CardContent>
             </Card>
-
-            {isCameraOn && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Camera View</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="aspect-video w-full bg-muted rounded-md overflow-hidden flex items-center justify-center">
-                            <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
-                        </div>
-                        {hasCameraPermission === false && (
-                            <Alert variant="destructive" className="mt-4">
-                                <AlertTitle>Camera Access Denied</AlertTitle>
-                                <AlertDescription>
-                                Please enable camera permissions in your browser settings to use this feature.
-                                </AlertDescription>
-                            </Alert>
-                        )}
-                    </CardContent>
-                </Card>
-            )}
 
             <Card>
                 <CardHeader>
@@ -213,7 +194,7 @@ export function LearningJournalClient() {
                         <div className="text-center text-muted-foreground py-8">
                             <Book className="mx-auto h-10 w-10 mb-4" />
                             <p>No journal entries yet.</p>
-                            <p className="text-sm">Create an entry above to get started.</p>
+                            <p className="text-sm">Create a video entry above to get started.</p>
                         </div>
                     )}
                     <div className="space-y-4">
@@ -226,7 +207,17 @@ export function LearningJournalClient() {
                                             ? format(new Date(entry.createdAt.seconds * 1000), 'PPP p') 
                                             : 'Date not available'}
                                 </p>
-                                <p className="whitespace-pre-wrap">{entry.text}</p>
+                                {entry.videoUrl ? (
+                                     <div className="space-y-2">
+                                        <video src={entry.videoUrl} controls className="w-full rounded-md max-w-lg"></video>
+                                        <Button onClick={() => handleDownload(entry.videoUrl!)} variant="outline" size="sm">
+                                            <Download className="mr-2 h-4 w-4" />
+                                            Download
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <p className="whitespace-pre-wrap">{entry.text}</p>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -234,11 +225,4 @@ export function LearningJournalClient() {
             </Card>
         </div>
     );
-}
-
-declare global {
-    interface Window {
-        SpeechRecognition: any;
-        webkitSpeechRecognition: any;
-    }
 }
