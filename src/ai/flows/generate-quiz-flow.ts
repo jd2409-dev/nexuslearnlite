@@ -8,8 +8,8 @@
  * - GenerateQuizOutput - The return type for the generateQuiz function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const GenerateQuizInputSchema = z.object({
   sourceType: z.enum(['topic', 'pdf']).describe('The source of the content for the quiz.'),
