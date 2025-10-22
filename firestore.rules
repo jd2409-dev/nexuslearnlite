@@ -1,21 +1,17 @@
 /**
- * @fileoverview Firestore Security Rules for NexusLearn AI.
- *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for personal data while allowing public read access to certain collections.
+ * @file Firestore Security Rules
+ * @description This ruleset enforces a strict user-ownership model for user profiles, journal entries, and quiz results.
  *
  * Data Structure:
- * - User-specific data (profiles, study plans, subject modules, textbooks) is nested under `/users/{userId}`.
- * - Public data (quizzes, achievements) resides in top-level collections.
+ * - /users/{userId}: Stores public user profile data.  Only the user themselves can read/write this data.
+ * - /users/{userId}/journalEntries/{entryId}: Stores a user's learning journal entries. Only the user can read/write their own entries.
+ * - /users/{userId}/quizResults/{resultId}: Stores the results of quizzes taken by the user. Only the user can read/write their own results.
  *
  * Key Security Decisions:
- * - User profiles and related data are strictly controlled by the owning user.
- * - Quizzes and Achievements are publicly readable but not writable by users.
- * - Denormalization of `userId` in Textbook documents avoids costly `get()` calls.
- *
- * Authorization Independence:
- * - Rules are written such that authorization checks can be performed on the documents being accessed, without needing to fetch related documents (e.g. checking a user's role in a project).
- *   This is achieved by denormalizing authorization data onto the documents themselves.
+ * - Users can only access their own data. There are no shared resources or admin roles in this prototype.
+ * - Data consistency between the path and the document's internal `userId` field is enforced on create.
+ * - Data consistency of the `userId` field is also enforced to be immutable on update.
+ * - Listing of documents is allowed for all user-owned subcollections.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -23,142 +19,84 @@ service cloud.firestore {
 
     /**
      * @description Controls access to user profile data.
-     * @path /users/{userId}/profile
-     * @allow (create) - User with ID 'user123' can create their profile if request.auth.uid == 'user123'.
-     * @allow (get, update, delete) - User with ID 'user123' can read, update, or delete their profile if request.auth.uid == 'user123'.
-     * @deny (create) - User with ID 'user456' cannot create profile under /users/user123/profile.
-     * @deny (get, update, delete) - User with ID 'user456' cannot read, update, or delete profile under /users/user123/profile.
-     * @principle Enforces document ownership for all operations on user profiles.
+     * @path /users/{userId}
+     * @allow (create) User with ID 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1' can create their profile.
+     * @allow (get) User with ID 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1' can read their profile.
+     * @allow (update) User with ID 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1' can update their profile.
+     * @allow (delete) User with ID 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1' can delete their profile.
+     * @deny (create) User with ID 'AnotherUserId' cannot create a profile for 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1'.
+     * @deny (get) User with ID 'AnotherUserId' cannot read the profile of 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1'.
+     * @deny (update) User with ID 'AnotherUserId' cannot update the profile of 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1'.
+     * @deny (delete) User with ID 'AnotherUserId' cannot delete the profile of 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1'.
+     * @principle Enforces document ownership for all operations.
      */
-    match /users/{userId}/profile {
-      function isSignedIn() {
-        return request.auth != null;
-      }
+    match /users/{userId} {
       function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-      function isExistingOwner(userId) {
-          return isOwner(userId) && resource != null;
+        return request.auth != null && request.auth.uid == userId;
       }
       allow get: if isOwner(userId);
       allow list: if false;
       allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    /**
+     * @description Controls access to a user's journal entries.
+     * @path /users/{userId}/journalEntries/{entryId}
+     * @allow (create) User with ID 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1' can create a journal entry.
+     * @allow (get) User with ID 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1' can read their own journal entry.
+     * @allow (list) User with ID 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1' can list their own journal entries.
+     * @allow (update) User with ID 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1' can update their own journal entry.
+     * @allow (delete) User with ID 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1' can delete their own journal entry.
+     * @deny (create) User with ID 'AnotherUserId' cannot create a journal entry for 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1'.
+     * @deny (get) User with ID 'AnotherUserId' cannot read the journal entry of 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1'.
+     * @deny (list) User with ID 'AnotherUserId' cannot list the journal entries of 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1'.
+     * @deny (update) User with ID 'AnotherUserId' cannot update the journal entry of 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1'.
+     * @deny (delete) User with ID 'AnotherUserId' cannot delete the journal entry of 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1'.
+     * @principle Enforces document ownership and validates the 'userId' field.
+     */
+    match /users/{userId}/journalEntries/{entryId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to user study plans.
-     * @path /users/{userId}/studyPlans/{studyPlanId}
-     * @allow (create) - User with ID 'user123' can create a study plan under their ID.
-     * @allow (get, update, delete) - User with ID 'user123' can read, update, or delete their study plan.
-     * @deny (create) - User with ID 'user456' cannot create a study plan under /users/user123/.
-     * @deny (get, update, delete) - User with ID 'user456' cannot read, update, or delete study plan under /users/user123/.
-     * @principle Enforces document ownership for all operations on user study plans.
+     * @description Controls access to a user's quiz results.
+     * @path /users/{userId}/quizResults/{resultId}
+     * @allow (create) User with ID 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1' can create a quiz result.
+     * @allow (get) User with ID 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1' can read their own quiz result.
+     * @allow (list) User with ID 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1' can list their own quiz results.
+     * @allow (update) User with ID 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1' can update their own quiz result.
+     * @allow (delete) User with ID 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1' can delete their own quiz result.
+     * @deny (create) User with ID 'AnotherUserId' cannot create a quiz result for 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1'.
+     * @deny (get) User with ID 'AnotherUserId' cannot read the quiz result of 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1'.
+     * @deny (list) User with ID 'AnotherUserId' cannot list the quiz results of 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1'.
+     * @deny (update) User with ID 'AnotherUserId' cannot update the quiz result of 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1'.
+     * @deny (delete) User with ID 'AnotherUserId' cannot delete the quiz result of 'AlxMw8ggbefrPB7bZy7Ufh6Hcxz1'.
+     * @principle Enforces document ownership and validates the 'userId' field.
      */
-    match /users/{userId}/studyPlans/{studyPlanId} {
-        function isSignedIn() {
-            return request.auth != null;
-        }
-        function isOwner(userId) {
-            return request.auth.uid == userId;
-        }
-        function isExistingOwner(userId) {
-            return isOwner(userId) && resource != null;
-        }
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
-        allow create: if isOwner(userId);
-        allow update: if isExistingOwner(userId);
-        allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Controls access to user subject modules within a study plan.
-     * @path /users/{userId}/studyPlans/{studyPlanId}/subjectModules/{subjectModuleId}
-     * @allow (create) - User with ID 'user123' can create a subject module under their ID.
-     * @allow (get, update, delete) - User with ID 'user123' can read, update, or delete their subject module.
-     * @deny (create) - User with ID 'user456' cannot create a subject module under /users/user123/.
-     * @deny (get, update, delete) - User with ID 'user456' cannot read, update, or delete subject module under /users/user123/.
-     * @principle Enforces document ownership for all operations on user subject modules.
-     */
-    match /users/{userId}/studyPlans/{studyPlanId}/subjectModules/{subjectModuleId} {
-        function isSignedIn() {
-            return request.auth != null;
-        }
-        function isOwner(userId) {
-            return request.auth.uid == userId;
-        }
-        function isExistingOwner(userId) {
-            return isOwner(userId) && resource != null;
-        }
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
-        allow create: if isOwner(userId);
-        allow update: if isExistingOwner(userId);
-        allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Controls access to user-uploaded textbooks.
-     * @path /users/{userId}/textbooks/{textbookId}
-     * @allow (create) - User with ID 'user123' can create a textbook with userId == 'user123'.
-     * @allow (get, update, delete) - User with ID 'user123' can read, update, or delete their textbook based on userId field.
-     * @deny (create) - User with ID 'user456' cannot create a textbook under /users/user123/.
-     * @deny (get, update, delete) - User with ID 'user456' cannot read, update, or delete textbook under /users/user123/.
-     * @principle Enforces document ownership for all operations on user textbooks by userId field.
-     */
-    match /users/{userId}/textbooks/{textbookId} {
-        function isSignedIn() {
-            return request.auth != null;
-        }
-        function isOwner(userId) {
-            return request.auth.uid == userId;
-        }
-        function isExistingOwner(userId) {
-            return isOwner(userId) && resource != null;
-        }
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
-        allow create: if request.resource.data.userId == request.auth.uid;
-        allow update: if isExistingOwner(resource.data.userId);
-        allow delete: if isExistingOwner(resource.data.userId);
-    }
-
-    /**
-     * @description Controls access to quizzes.  Quizzes are publicly readable, but writes are not allowed by users.
-     * @path /quizzes/{quizId}
-     * @allow (get, list) - Any user (signed in or not) can read quizzes.
-     * @deny (create, update, delete) - No user can create, update, or delete quizzes.
-     * @principle Allows public read access to quizzes.
-     */
-    match /quizzes/{quizId} {
-        allow get, list: if true;
-        allow create, update, delete: if false;
-    }
-
-    /**
-     * @description Controls access to questions within a quiz. Questions are publicly readable, but writes are not allowed by users.
-     * @path /quizzes/{quizId}/questions/{questionId}
-     * @allow (get, list) - Any user (signed in or not) can read questions.
-     * @deny (create, update, delete) - No user can create, update, or delete questions.
-     * @principle Allows public read access to questions.
-     */
-    match /quizzes/{quizId}/questions/{questionId} {
-        allow get, list: if true;
-        allow create, update, delete: if false;
-    }
-
-    /**
-     * @description Controls access to achievement definitions.  Achievements are publicly readable, but writes are not allowed by users.
-     * @path /achievements/{achievementId}
-     * @allow (get, list) - Any user (signed in or not) can read achievements.
-     * @deny (create, update, delete) - No user can create, update, or delete achievements.
-     * @principle Allows public read access to achievements.
-     */
-    match /achievements/{achievementId} {
-        allow get, list: if true;
-        allow create, update, delete: if false;
+    match /users/{userId}/quizResults/{resultId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
     }
   }
 }
