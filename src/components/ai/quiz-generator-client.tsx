@@ -7,16 +7,18 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { generateQuiz, GenerateQuizOutput } from "@/ai/flows/generate-quiz-flow";
 import { useToast } from "@/hooks/use-toast";
+import { useUser, useFirestore } from "@/firebase";
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, Wand2, Upload, ArrowLeft, ArrowRight, CheckCircle, XCircle } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
-import { Label } from "@/components/ui/label";
 
 const formSchema = z.object({
   source: z.enum(['topic', 'pdf']),
@@ -47,6 +49,8 @@ export function QuizGeneratorClient() {
   const [isLoading, setIsLoading] = useState(false);
   const [fileName, setFileName] = useState('');
   const { toast } = useToast();
+  const { user } = useUser();
+  const firestore = useFirestore();
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
@@ -106,16 +110,45 @@ export function QuizGeneratorClient() {
     setUserAnswers(prev => ({...prev, [questionIndex]: answer}));
   };
 
-  const handleSubmitQuiz = () => {
-    if (!quiz) return;
+  const handleSubmitQuiz = async () => {
+    if (!quiz || !user || !firestore) return;
+    
     let correctAnswers = 0;
     quiz.questions.forEach((q, i) => {
         if (userAnswers[i] === q.answer) {
             correctAnswers++;
         }
     });
-    setScore((correctAnswers / quiz.questions.length) * 100);
+    const finalScore = (correctAnswers / quiz.questions.length) * 100;
+    setScore(finalScore);
     setQuizSubmitted(true);
+
+    try {
+        const quizResultData = {
+            userId: user.uid,
+            quizTitle: quiz.title,
+            score: finalScore,
+            questions: quiz.questions.map((q, i) => ({
+                questionText: q.questionText,
+                userAnswer: userAnswers[i] || "Not answered",
+                correctAnswer: q.answer,
+            })),
+            takenAt: serverTimestamp(),
+        };
+        const resultsCollection = collection(firestore, 'users', user.uid, 'quizResults');
+        await addDoc(resultsCollection, quizResultData);
+        toast({
+            title: "Quiz result saved!",
+            description: "Your results have been saved to your reflections."
+        });
+    } catch (error) {
+        console.error("Failed to save quiz result:", error);
+        toast({
+            variant: "destructive",
+            title: "Saving Failed",
+            description: "Could not save your quiz result. Please try again."
+        });
+    }
   };
 
   const handleRestartQuiz = () => {
