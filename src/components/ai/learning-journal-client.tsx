@@ -50,16 +50,21 @@ export function LearningJournalClient() {
     const { data: entries, isLoading: isLoadingEntries } = useCollection<JournalEntry>(journalEntriesQuery);
 
     const getPermissions = useCallback(async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            setHasPermission(true);
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
+        if (typeof window !== 'undefined' && navigator.mediaDevices) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                setHasPermission(true);
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                }
+                return stream;
+            } catch (error) {
+                console.error('Error accessing media devices:', error);
+                setHasPermission(false);
+                return null;
             }
-        } catch (error) {
-            console.error('Error accessing media devices:', error);
-            setHasPermission(false);
         }
+        return null;
     }, []);
     
     useEffect(() => {
@@ -67,19 +72,20 @@ export function LearningJournalClient() {
     }, [getPermissions]);
 
     const handleStartRecording = async () => {
-        if (!videoRef.current?.srcObject) {
-            await getPermissions();
-            if (!videoRef.current?.srcObject) {
-                toast({
-                    variant: 'destructive',
-                    title: 'Permissions Denied',
-                    description: 'Please enable camera and microphone permissions in your browser settings.',
-                });
-                return;
-            };
+        let stream = videoRef.current?.srcObject as MediaStream;
+        if (!stream?.active) {
+             stream = (await getPermissions())!;
         }
 
-        const stream = videoRef.current.srcObject as MediaStream;
+        if (!stream) {
+            toast({
+                variant: 'destructive',
+                title: 'Permissions Denied',
+                description: 'Please enable camera and microphone permissions in your browser settings.',
+            });
+            return;
+        }
+
         mediaRecorderRef.current = new MediaRecorder(stream);
         
         mediaRecorderRef.current.ondataavailable = (event) => {
@@ -100,14 +106,12 @@ export function LearningJournalClient() {
             }
             
             try {
-                // Upload to Firebase Storage
                 const storage = getStorage();
-                const videoId = `${Date.now()}.webm`;
+                const videoId = `${user.uid}-${Date.now()}.webm`;
                 const sRef = storageRef(storage, `users/${user.uid}/journalEntries/${videoId}`);
                 const snapshot = await uploadBytes(sRef, blob);
                 const downloadURL = await getDownloadURL(snapshot.ref);
 
-                // Save reference to Firestore
                 await addDoc(journalEntriesRef, {
                     userId: user.uid,
                     text: `Video Note - ${format(new Date(), 'PPP')}`,
@@ -121,8 +125,6 @@ export function LearningJournalClient() {
                 toast({ variant: 'destructive', title: 'Failed to save video entry.' });
             } finally {
                 setIsSaving(false);
-                // Restart preview stream
-                getPermissions();
             }
         };
         
@@ -136,8 +138,6 @@ export function LearningJournalClient() {
             mediaRecorderRef.current.stop();
             setIsRecording(false);
         }
-        const stream = videoRef.current?.srcObject as MediaStream;
-        stream?.getTracks().forEach(track => track.stop());
     };
 
     const handleSaveTextNote = async () => {
