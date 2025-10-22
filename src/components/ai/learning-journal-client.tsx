@@ -5,19 +5,45 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Mic, MicOff, Video, VideoOff, Save } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, Save, Loader2, Book } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, addDoc, serverTimestamp, query, orderBy } from "firebase/firestore";
+import { format } from 'date-fns';
+
+type JournalEntry = {
+    id: string;
+    text: string;
+    createdAt: {
+        seconds: number;
+        nanoseconds: number;
+    } | Date;
+};
 
 export function LearningJournalClient() {
     const [text, setText] = useState("");
     const [isRecording, setIsRecording] = useState(false);
     const [isCameraOn, setIsCameraOn] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const { toast } = useToast();
+    const { user } = useUser();
+    const firestore = useFirestore();
 
-    // Placeholder for SpeechRecognition
+    const journalEntriesRef = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return collection(firestore, 'users', user.uid, 'journalEntries');
+    }, [firestore, user]);
+
+    const journalEntriesQuery = useMemoFirebase(() => {
+        if (!journalEntriesRef) return null;
+        return query(journalEntriesRef, orderBy('createdAt', 'desc'));
+    }, [journalEntriesRef]);
+    
+    const { data: entries, isLoading: isLoadingEntries } = useCollection<JournalEntry>(journalEntriesQuery);
+
     const recognitionRef = useRef<any>(null);
 
     useEffect(() => {
@@ -27,16 +53,15 @@ export function LearningJournalClient() {
             recognitionRef.current.continuous = true;
             recognitionRef.current.interimResults = true;
             recognitionRef.current.onresult = (event: any) => {
-                let interimTranscript = '';
                 let finalTranscript = '';
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
                     if (event.results[i].isFinal) {
                         finalTranscript += event.results[i][0].transcript;
-                    } else {
-                        interimTranscript += event.results[i][0].transcript;
                     }
                 }
-                setText(prev => prev + finalTranscript + interimTranscript);
+                if (finalTranscript) {
+                    setText(prev => prev.trim() + ' ' + finalTranscript.trim());
+                }
             };
         }
     }, []);
@@ -90,6 +115,34 @@ export function LearningJournalClient() {
     const toggleCamera = () => {
         setIsCameraOn(prev => !prev);
     };
+    
+    const handleSaveEntry = async () => {
+        if (!user) {
+            toast({ variant: 'destructive', title: 'You must be logged in to save an entry.' });
+            return;
+        }
+        if (!text.trim()) {
+            toast({ variant: 'destructive', title: 'Cannot save an empty entry.' });
+            return;
+        }
+        if (!journalEntriesRef) return;
+
+        setIsSaving(true);
+        try {
+            await addDoc(journalEntriesRef, {
+                userId: user.uid,
+                text: text,
+                createdAt: serverTimestamp(),
+            });
+            setText("");
+            toast({ title: 'Journal entry saved!' });
+        } catch (error) {
+            console.error("Error saving entry: ", error);
+            toast({ variant: 'destructive', title: 'Failed to save entry.' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     return (
         <div className="container mx-auto space-y-8">
@@ -109,7 +162,7 @@ export function LearningJournalClient() {
                             placeholder="Start typing your notes here..."
                             value={text}
                             onChange={(e) => setText(e.target.value)}
-                            rows={15}
+                            rows={10}
                             className="text-base"
                         />
                          <div className="flex items-center gap-2">
@@ -119,8 +172,9 @@ export function LearningJournalClient() {
                              <Button onClick={toggleCamera} variant={isCameraOn ? "destructive" : "outline"} size="icon" aria-label="Toggle camera">
                                 {isCameraOn ? <VideoOff /> : <Video />}
                             </Button>
-                            <Button className="ml-auto">
-                                <Save className="mr-2 h-4 w-4" /> Save Entry
+                            <Button onClick={handleSaveEntry} disabled={isSaving} className="ml-auto">
+                                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                 Save Entry
                             </Button>
                         </div>
                     </div>
@@ -147,6 +201,37 @@ export function LearningJournalClient() {
                     </CardContent>
                 </Card>
             )}
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Past Entries</CardTitle>
+                    <CardDescription>Review your previous journal entries.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {isLoadingEntries && <div className="flex justify-center items-center h-24"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
+                    {!isLoadingEntries && (!entries || entries.length === 0) && (
+                        <div className="text-center text-muted-foreground py-8">
+                            <Book className="mx-auto h-10 w-10 mb-4" />
+                            <p>No journal entries yet.</p>
+                            <p className="text-sm">Create an entry above to get started.</p>
+                        </div>
+                    )}
+                    <div className="space-y-4">
+                        {entries?.map(entry => (
+                            <div key={entry.id} className="border-l-4 border-primary pl-4 py-2">
+                                <p className="text-sm text-muted-foreground mb-2">
+                                    {entry.createdAt instanceof Date 
+                                        ? format(entry.createdAt, 'PPP p')
+                                        : entry.createdAt?.seconds 
+                                            ? format(new Date(entry.createdAt.seconds * 1000), 'PPP p') 
+                                            : 'Date not available'}
+                                </p>
+                                <p className="whitespace-pre-wrap">{entry.text}</p>
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }
