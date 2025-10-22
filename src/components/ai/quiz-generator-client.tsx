@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Loader2, Wand2, Upload, ArrowLeft, ArrowRight, CheckCircle, XCircle } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
+import { Label } from "@/components/ui/label";
 
 const formSchema = z.object({
   source: z.enum(['topic', 'pdf']),
@@ -301,5 +302,3 @@ export function QuizGeneratorClient() {
     </div>
   );
 }
-
-    
