@@ -1,6 +1,6 @@
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
-import {defineString} from 'genkit/params';
+import {defineString} from 'genkit';
 
 const geminiApiKey = defineString({
   name: 'GEMINI_API_KEY',
