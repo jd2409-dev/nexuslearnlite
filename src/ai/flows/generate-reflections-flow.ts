@@ -39,7 +39,9 @@ export async function generateReflections(input: GenerateReflectionsInput): Prom
 
 const prompt = ai.definePrompt({
   name: 'generateReflectionsPrompt',
-  input: { schema: GenerateReflectionsInputSchema },
+  input: { schema: GenerateReflectionsInputSchema.extend({
+    processedHistory: z.any() // For pre-processed data
+  }) },
   output: { schema: GenerateReflectionsOutputSchema },
   prompt: `You are an expert academic advisor. Analyze the provided quiz history of a student and generate personalized, actionable suggestions for improvement.
 
@@ -48,21 +50,16 @@ const prompt = ai.definePrompt({
   Based on your analysis, provide a list of 3-5 clear and encouraging suggestions. Frame the feedback constructively.
 
   Quiz History:
-  {{#each quizHistory}}
+  {{#each processedHistory}}
   - Quiz: "{{quizTitle}}", Score: {{score}}%
     Incorrect Answers:
-    {{#each questions}}
-    {{#if (ne userAnswer correctAnswer)}}
+    {{#each incorrectQuestions}}
     - Question: "{{questionText}}"
       Your Answer: "{{userAnswer}}", Correct Answer: "{{correctAnswer}}"
-    {{/if}}
     {{/each}}
   {{/each}}
 
   Now, provide your suggestions for improvement.`,
-  helpers: {
-    ne: (a, b) => a !== b,
-  }
 });
 
 
@@ -73,7 +70,13 @@ const generateReflectionsFlow = ai.defineFlow(
     outputSchema: GenerateReflectionsOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
+    // Pre-process the quiz history to create a list of incorrect questions
+    const processedHistory = input.quizHistory.map(quiz => ({
+      ...quiz,
+      incorrectQuestions: quiz.questions.filter(q => q.userAnswer !== q.correctAnswer)
+    }));
+
+    const { output } = await prompt({ ...input, processedHistory });
     return output!;
   }
 );
