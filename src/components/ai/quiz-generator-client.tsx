@@ -13,8 +13,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Wand2, Upload } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
+import { Loader2, Wand2, Upload, ArrowLeft, ArrowRight, CheckCircle, XCircle } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Progress } from "@/components/ui/progress";
 
 const formSchema = z.object({
   source: z.enum(['topic', 'pdf']),
@@ -46,6 +47,12 @@ export function QuizGeneratorClient() {
   const [fileName, setFileName] = useState('');
   const { toast } = useToast();
 
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
+  const [score, setScore] = useState(0);
+
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -62,6 +69,10 @@ export function QuizGeneratorClient() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     setQuiz(null);
+    setQuizSubmitted(false);
+    setCurrentQuestionIndex(0);
+    setUserAnswers({});
+    setScore(0);
     try {
       let content = "";
       if (values.source === 'topic') {
@@ -90,126 +101,199 @@ export function QuizGeneratorClient() {
     }
   }
 
+  const handleAnswerSelect = (questionIndex: number, answer: string) => {
+    setUserAnswers(prev => ({...prev, [questionIndex]: answer}));
+  };
+
+  const handleSubmitQuiz = () => {
+    if (!quiz) return;
+    let correctAnswers = 0;
+    quiz.questions.forEach((q, i) => {
+        if (userAnswers[i] === q.answer) {
+            correctAnswers++;
+        }
+    });
+    setScore((correctAnswers / quiz.questions.length) * 100);
+    setQuizSubmitted(true);
+  };
+
+  const handleRestartQuiz = () => {
+    setQuiz(null);
+    setQuizSubmitted(false);
+    setCurrentQuestionIndex(0);
+    setUserAnswers({});
+    setScore(0);
+    form.reset();
+  }
+
+  const currentQuestion = quiz?.questions[currentQuestionIndex];
+  const isMcq = quiz?.questions[currentQuestionIndex]?.options && quiz.questions[currentQuestionIndex].options!.length > 0;
+
   return (
     <div className="container mx-auto space-y-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight font-headline">Quiz Generator</h1>
-        <p className="text-muted-foreground">Create quizzes from a topic or a PDF document.</p>
-      </div>
+      {!quiz ? (
+        <>
+            <div className="mb-6">
+                <h1 className="text-3xl font-bold tracking-tight font-headline">Quiz Generator</h1>
+                <p className="text-muted-foreground">Create quizzes from a topic or a PDF document.</p>
+            </div>
+            <Card>
+                <CardHeader>
+                <CardTitle>Generate a New Quiz</CardTitle>
+                <CardDescription>Let our AI create a custom quiz for you.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <FormField control={form.control} name="source" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Quiz Source</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                <SelectContent>
+                                    <SelectItem value="topic">From Topic</SelectItem>
+                                    <SelectItem value="pdf">From PDF</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </FormItem>
+                    )} />
+                    
+                    {source === 'topic' && (
+                        <FormField control={form.control} name="topic" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Topic</FormLabel>
+                                <FormControl><Input placeholder="e.g., The French Revolution" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                    )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Generate a New Quiz</CardTitle>
-          <CardDescription>Let our AI create a custom quiz for you.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField control={form.control} name="source" render={({ field }) => (
-                  <FormItem>
-                      <FormLabel>Quiz Source</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                          <SelectContent>
-                              <SelectItem value="topic">From Topic</SelectItem>
-                              <SelectItem value="pdf">From PDF</SelectItem>
-                          </SelectContent>
-                      </Select>
-                  </FormItem>
-              )} />
-              
-              {source === 'topic' && (
-                <FormField control={form.control} name="topic" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Topic</FormLabel>
-                        <FormControl><Input placeholder="e.g., The French Revolution" {...field} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
-              )}
+                    {source === 'pdf' && (
+                        <FormField control={form.control} name="file" render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Textbook (PDF)</FormLabel>
+                            <FormControl>
+                                <div className="relative">
+                                <Button type="button" variant="outline" className="w-full justify-start text-left font-normal" asChild>
+                                    <label htmlFor="file-upload">
+                                    <Upload className="mr-2 h-4 w-4" />
+                                    {fileName || "Click to upload a PDF"}
+                                    </label>
+                                </Button>
+                                <Input id="file-upload" type="file" accept=".pdf" className="sr-only"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            field.onChange(file);
+                                            setFileName(file.name);
+                                        }
+                                    }}
+                                />
+                                </div>
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )} />
+                    )}
 
-              {source === 'pdf' && (
-                <FormField control={form.control} name="file" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Textbook (PDF)</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Button type="button" variant="outline" className="w-full justify-start text-left font-normal" asChild>
-                            <label htmlFor="file-upload">
-                              <Upload className="mr-2 h-4 w-4" />
-                              {fileName || "Click to upload a PDF"}
-                            </label>
-                          </Button>
-                          <Input id="file-upload" type="file" accept=".pdf" className="sr-only"
-                            onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                    field.onChange(file);
-                                    setFileName(file.name);
-                                }
-                            }}
-                          />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField control={form.control} name="questionType" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Question Type</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="mcqs">Multiple Choice</SelectItem>
+                                        <SelectItem value="1_mark">1-Mark Questions</SelectItem>
+                                        <SelectItem value="2_marks">2-Mark Questions</SelectItem>
+                                        <SelectItem value="3_marks">3-Mark Questions</SelectItem>
+                                        <SelectItem value="5_marks">5-Mark Questions</SelectItem>
+                                        <SelectItem value="fill_in_the_blanks">Fill in the Blanks</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </FormItem>
+                        )} />
+                        <FormField control={form.control} name="numberOfQuestions" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Number of Questions</FormLabel>
+                                <FormControl><Input type="number" min="3" max="20" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                    </div>
+                    
+                    <Button type="submit" disabled={isLoading} className="w-full md:w-auto">
+                        {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating Quiz...</> : <><Wand2 className="mr-2 h-4 w-4" /> Generate Quiz</>}
+                    </Button>
+                    </form>
+                </Form>
+                </CardContent>
+            </Card>
+        </>
+      ) : isLoading ? (
+         <div className="text-center p-8"><Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" /> <p className="mt-2 text-muted-foreground">AI is crafting your quiz...</p></div>
+      ) : quizSubmitted ? (
+        <Card>
+            <CardHeader>
+                <CardTitle>Quiz Results</CardTitle>
+                <CardDescription>You scored {score.toFixed(0)}%</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                {quiz.questions.map((q, i) => (
+                    <div key={i} className="p-4 border rounded-lg">
+                        <p className="font-semibold">{i + 1}. {q.questionText}</p>
+                        <div className="flex items-center mt-2 gap-2">
+                            {userAnswers[i] === q.answer ? <CheckCircle className="text-green-500"/> : <XCircle className="text-destructive"/>}
+                            <p className="text-sm">Your answer: {userAnswers[i] || "Not answered"}</p>
                         </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="questionType" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Question Type</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                            <SelectContent>
-                                <SelectItem value="mcqs">Multiple Choice</SelectItem>
-                                <SelectItem value="1_mark">1-Mark Questions</SelectItem>
-                                <SelectItem value="2_marks">2-Mark Questions</SelectItem>
-                                <SelectItem value="3_marks">3-Mark Questions</SelectItem>
-                                <SelectItem value="5_marks">5-Mark Questions</SelectItem>
-                                <SelectItem value="fill_in_the_blanks">Fill in the Blanks</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </FormItem>
-                )} />
-                <FormField control={form.control} name="numberOfQuestions" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Number of Questions</FormLabel>
-                        <FormControl><Input type="number" min="3" max="20" {...field} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
-              </div>
-              
-              <Button type="submit" disabled={isLoading} className="w-full md:w-auto">
-                {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating Quiz...</> : <><Wand2 className="mr-2 h-4 w-4" /> Generate Quiz</>}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-      
-      {isLoading && <div className="text-center p-8"><Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" /> <p className="mt-2 text-muted-foreground">AI is crafting your quiz...</p></div>}
-
-      {quiz && (
+                        {userAnswers[i] !== q.answer && (
+                            <p className="text-sm text-primary mt-1">Correct answer: {q.answer}</p>
+                        )}
+                    </div>
+                ))}
+                <Button onClick={handleRestartQuiz}>Take Another Quiz</Button>
+            </CardContent>
+        </Card>
+      ) : (
         <Card>
             <CardHeader>
                 <CardTitle>{quiz.title}</CardTitle>
+                <Progress value={((currentQuestionIndex + 1) / quiz.questions.length) * 100} className="mt-2"/>
+                <CardDescription className="pt-2">Question {currentQuestionIndex + 1} of {quiz.questions.length}</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">
-                    {quiz.questions.map((q, i) => (
-                        <div key={i} className="p-4 border rounded-lg">
-                            <p className="font-semibold">{i + 1}. {q.questionText}</p>
-                            {q.options && q.options.length > 0 && (
-                                <ul className="list-disc list-inside mt-2 space-y-1">
-                                    {q.options.map((opt, j) => <li key={j}>{opt}</li>)}
-                                </ul>
-                            )}
-                            <p className="text-sm text-primary mt-2 font-medium">Answer: {q.answer}</p>
-                        </div>
-                    ))}
+                    <p className="font-semibold text-lg">{currentQuestion?.questionText}</p>
+                    {isMcq && currentQuestion ? (
+                        <RadioGroup onValueChange={(value) => handleAnswerSelect(currentQuestionIndex, value)} value={userAnswers[currentQuestionIndex]}>
+                            {currentQuestion.options?.map((opt, j) => (
+                                <div key={j} className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted">
+                                    <RadioGroupItem value={opt} id={`q${currentQuestionIndex}-opt${j}`} />
+                                    <Label htmlFor={`q${currentQuestionIndex}-opt${j}`} className="flex-1 cursor-pointer">{opt}</Label>
+                                </div>
+                            ))}
+                        </RadioGroup>
+                    ) : (
+                        <Input 
+                            placeholder="Your answer" 
+                            onChange={(e) => handleAnswerSelect(currentQuestionIndex, e.target.value)}
+                            value={userAnswers[currentQuestionIndex] || ""}
+                        />
+                    )}
+                </div>
+                 <div className="flex justify-between mt-8">
+                    <Button variant="outline" onClick={() => setCurrentQuestionIndex(i => i - 1)} disabled={currentQuestionIndex === 0}>
+                        <ArrowLeft className="mr-2" /> Previous
+                    </Button>
+                    {currentQuestionIndex < quiz.questions.length - 1 ? (
+                        <Button onClick={() => setCurrentQuestionIndex(i => i + 1)}>
+                            Next <ArrowRight className="ml-2" />
+                        </Button>
+                    ) : (
+                        <Button onClick={handleSubmitQuiz} className="bg-green-600 hover:bg-green-700">
+                            Submit Quiz
+                        </Button>
+                    )}
                 </div>
             </CardContent>
         </Card>
@@ -217,3 +301,5 @@ export function QuizGeneratorClient() {
     </div>
   );
 }
+
+    
